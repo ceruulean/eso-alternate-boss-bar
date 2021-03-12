@@ -125,23 +125,24 @@ end
 
 function FBB_BossBar:FormatPercent(health, maxHealth)
     local percent = 0
+    local percentText
     if maxHealth ~= 0 then
-        percent = (health/maxHealth) * 100
-        if percent < 10 then
-            percent = ZO_CommaDelimitDecimalNumber(zo_roundToNearest(percent, .1))
-            percent = ZO_FastFormatDecimalNumber(percent)
-        else
-            percent = zo_round(percent)
-        end
+        percent = (health / maxHealth) * 100
+    end
+    if percent < 10 then
+        percentText = ZO_CommaDelimitDecimalNumber(zo_roundToNearest(percent, .1))
+        percentText = ZO_FastFormatDecimalNumber(percentText)
+    else
+        percentText = zo_round(percent)
     end
     if self.bossPercentages ~= nil then
         for i = 1, #self.bossPercentages do
             if (percent >= self.bossPercentages[i] and percent <= self.bossPercentages[i] + SETTINGS.NOTIFY_BEFORE_PERCENT) then
-                return zo_iconFormat("esoui/art/interaction/questnewavailable.dds", ICONSIZE-8, ICONSIZE-8)..percent..'%'
+                return zo_iconFormat("esoui/art/interaction/questnewavailable.dds", ICONSIZE-8, ICONSIZE-8)..percentText..'%'
             end
         end
     end
-    return percent..'%'
+    return percentText..'%'
 end
 
 function FBB_BossBar:OnPowerUpdate(health, maxHealth, force)
