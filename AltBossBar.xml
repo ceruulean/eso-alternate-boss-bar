@@ -1,13 +1,13 @@
 <GuiXml>
     <Controls>
 
-        <Line name="FBB_HP_Line_Template" thickness="2" level="501" tier="1" virtual="true">
+        <Line name="ABB_HP_Line_Template" thickness="2" level="501" tier="1" virtual="true">
             <OnInitialized>
                 self:SetColor(1, 1, 1, 0.7)
             </OnInitialized>
         </Line>
 
-        <Control name="FBB_BossBar_Keyboard_Template" virtual="true">
+        <Control name="ABB_BossBar_Keyboard_Template" virtual="true">
             <Dimensions x="500" y="ZO_COMPASS_FRAME_HEIGHT_KEYBOARD"/>
             <Controls>
                 <Control name="$(parent)Health">
@@ -42,9 +42,9 @@
             </Controls>
         </Control>
 
-        <Control name="FBB_BossBar_Gamepad_Template" inherits="FBB_BossBar_Keyboard_Template" virtual="true"/>
+        <Control name="ABB_BossBar_Gamepad_Template" inherits="ABB_BossBar_Keyboard_Template" virtual="true"/>
 
-        <Control name="FBB_BossBar" virtual="true">
+        <Control name="ABB_BossBar" virtual="true">
             <Controls>
                 <Control name="$(parent)Health" inherits="ZO_PlayerAttributeContainer">
                     <Controls>
@@ -52,7 +52,7 @@
                             <Anchor point="LEFT" />
                             <Anchor point="RIGHT" relativePoint="LEFT" offsetX="18" />
                             <OnInitialized>
-                                self.gloss = FBB_FakeGloss:New()
+                                self.gloss = ABB_FakeGloss:New()
                                 self:SetMinMax(0,1)
                                 self:SetValue(1)
                             </OnInitialized>
@@ -61,7 +61,7 @@
                             <Anchor point="LEFT" offsetX="18" />
                             <Anchor point="RIGHT" />
                             <OnInitialized>
-                                self.gloss = FBB_FakeGloss:New()
+                                self.gloss = ABB_FakeGloss:New()
                             </OnInitialized>
                         </StatusBar>
                         <Label name="$(parent)Name" horizontalAlignment="CENTER">
@@ -99,10 +99,10 @@
             </Controls>
         </Control>
 
-        <TopLevelControl name="FBB_Container">
+        <TopLevelControl name="ABB_Container">
             <Anchor point="TOP" relativeTo="ZO_CompassFrame" relativePoint="TOP" offsetX="0" offsetY="0"/>
             <OnInitialized>
-                FBB_Initialize(self)
+                ABB_Initialize(self)
             </OnInitialized>
         </TopLevelControl>
     </Controls>

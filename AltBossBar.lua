@@ -1,5 +1,5 @@
 
-local NAME = 'FancyBossBar'
+local NAME = 'AltBossBar'
 local SV_VER = 2
 
 local SETTINGS
@@ -58,22 +58,22 @@ end
 
 local PercentLineManager = ZO_ControlPool:Subclass()
 function PercentLineManager:New(parent, ...)
-    local obj = ZO_ControlPool.New(self, "FBB_HP_Line_Template", parent, "FBB_HP_Line")
+    local obj = ZO_ControlPool.New(self, "ABB_HP_Line_Template", parent, "ABB_HP_Line")
     --obj:Initialize( ... )
     return obj
 end
 
-local FBB_BossBar = ZO_Object:Subclass()
-function FBB_BossBar:New(...)
+local ABB_BossBar = ZO_Object:Subclass()
+function ABB_BossBar:New(...)
     local bar = ZO_Object.New(self)
     bar:Initialize(...)
     return bar
 end
 
-function FBB_BossBar:Initialize(bossTag, topLevelCtrl, previousBar)
+function ABB_BossBar:Initialize(bossTag, topLevelCtrl, previousBar)
     self.unitTag = bossTag
     self.parent = topLevelCtrl
-    self.control = CreateControlFromVirtual("FBB_Frame"..bossTag, topLevelCtrl, "FBB_BossBar")
+    self.control = CreateControlFromVirtual("ABB_Frame"..bossTag, topLevelCtrl, "ABB_BossBar")
     self.control:SetHidden(true)
     local healthControl = GetControl(self.control, "Health")
     self.nameText = GetControl(healthControl, "Name")
@@ -101,7 +101,7 @@ function FBB_BossBar:Initialize(bossTag, topLevelCtrl, previousBar)
     self:ApplyAnchors()
 end
 
-function FBB_BossBar:CreateLine(percent)
+function ABB_BossBar:CreateLine(percent)
     local line = self.percentLinePool:AcquireObject()
     local x = (self.healthBar:GetWidth() / 100) * percent
     x = x - 9 -- mod for better simmetry cause of healthLeftBgBar
@@ -109,7 +109,7 @@ function FBB_BossBar:CreateLine(percent)
     line:SetAnchor(BOTTOMRIGHT, self.healthBar, TOPLEFT,  x, -0 + self.healthBar:GetHeight())
 end
 
-function FBB_BossBar:Refresh(force)
+function ABB_BossBar:Refresh(force)
     local bossName = GetUnitName(self.unitTag)
     self.bossPercentages = getBossPercentagesByName(bossName)
     self.percentLinePool:ReleaseAllObjects()
@@ -123,7 +123,7 @@ function FBB_BossBar:Refresh(force)
     self:OnPowerUpdate(health, maxHealth, force)
 end
 
-function FBB_BossBar:FormatPercent(health, maxHealth)
+function ABB_BossBar:FormatPercent(health, maxHealth)
     local percent = 0
     local percentText
     if maxHealth ~= 0 then
@@ -145,7 +145,7 @@ function FBB_BossBar:FormatPercent(health, maxHealth)
     return percentText..'%'
 end
 
-function FBB_BossBar:OnPowerUpdate(health, maxHealth, force)
+function ABB_BossBar:OnPowerUpdate(health, maxHealth, force)
     ZO_StatusBar_SmoothTransition(self.healthBar, health, maxHealth, force)
     self.healthLeftBgBar:SetValue((health > 0 and 1 or 0))
 
@@ -156,7 +156,7 @@ function FBB_BossBar:OnPowerUpdate(health, maxHealth, force)
     end
 end
 
-function FBB_BossBar:ApplyAnchors()
+function ABB_BossBar:ApplyAnchors()
     self.control:ClearAnchors()
     if self.previousBar ~= nil then
         self.previousBar.nextBar = self
@@ -166,20 +166,20 @@ function FBB_BossBar:ApplyAnchors()
     end
 end
 
-function FBB_BossBar:ApplyStyle()
-    ApplyTemplateToControl(self.control, ZO_GetPlatformTemplate("FBB_BossBar"))
+function ABB_BossBar:ApplyStyle()
+    ApplyTemplateToControl(self.control, ZO_GetPlatformTemplate("ABB_BossBar"))
     self:UpdateWidth()
 end
 
-function FBB_BossBar:UpdateWidth()
+function ABB_BossBar:UpdateWidth()
     self.control:SetWidth(getWidth())
 end
 
-function FBB_BossBar:Show()
+function ABB_BossBar:Show()
     self.control:SetHidden(false)
 end
 
-function FBB_BossBar:Hide()
+function ABB_BossBar:Hide()
     self.control:SetHidden(true)
     if self.nextBar ~= nil then
         self.nextBar:Hide()
@@ -199,7 +199,7 @@ local function InitBars(topLevelCtrl)
     local prevBossBar
     for i = 1, MAX_BOSSES do
         local bossTag = "boss"..i
-        bossBars[bossTag] = FBB_BossBar:New(bossTag, topLevelCtrl, prevBossBar)
+        bossBars[bossTag] = ABB_BossBar:New(bossTag, topLevelCtrl, prevBossBar)
         prevBossBar = bossBars[bossTag]
     end
 end
@@ -222,20 +222,20 @@ local function RefreshAllBosses(forceReset)
     end
 
     if lastBossBar ~= nil then
-        COMPASS_FRAME_FRAGMENT:SetHiddenForReason("FBBar", true)
+        COMPASS_FRAME_FRAGMENT:SetHiddenForReason("ABBar", true)
         AttachTargetTo(lastBossBar.control)
     else
-        COMPASS_FRAME_FRAGMENT:SetHiddenForReason("FBBar", false)
+        COMPASS_FRAME_FRAGMENT:SetHiddenForReason("ABBar", false)
         AttachTargetTo(ZO_CompassFrame)
     end
 end
 
-FBB_FakeGloss = ZO_Object:Subclass()
-function FBB_FakeGloss:New()
+ABB_FakeGloss = ZO_Object:Subclass()
+function ABB_FakeGloss:New()
     return ZO_Object.New(self)
 end
-function FBB_FakeGloss:SetMinMax() end
-function FBB_FakeGloss:SetValue() end
+function ABB_FakeGloss:SetMinMax() end
+function ABB_FakeGloss:SetValue() end
 
 -------------------------------------
 --Settings Menu--
@@ -243,16 +243,16 @@ function FBB_FakeGloss:SetValue() end
 local function InitializeAddonMenu()
     local LAM2 = LibAddonMenu2
 
-    LAM2:RegisterAddonPanel("FBB_Settings", {
+    LAM2:RegisterAddonPanel("ABB_Settings", {
         type = "panel",
-        name = "Fancy Boss Bars",
-        displayName = "Fancy Boss Bars",
+        name = "Alternative Boss Bars",
+        displayName = "Alternative Boss Bars",
         author = "|c943810BulDeZir|r",
         version = string.format('|c00FF00%s|r', 1),
         registerForRefresh = true,
     })
 
-    LAM2:RegisterOptionControls("FBB_Settings", {
+    LAM2:RegisterOptionControls("ABB_Settings", {
         {
             type = "checkbox",
             name = "Show Default Percent Lines (75%, 50%, 25%)",
@@ -277,12 +277,12 @@ local function InitializeAddonMenu()
     })
 end
 
-function FBB_Initialize(topLevelCtrl)
+function ABB_Initialize(topLevelCtrl)
 
     local function OnAddOnLoaded(_, addonName)
         if addonName == NAME then
 
-            SETTINGS = ZO_SavedVars:NewCharacterIdSettings("FancyBossBarSavedVariables", SV_VER, nil, {
+            SETTINGS = ZO_SavedVars:NewCharacterIdSettings("AltBossBarSavedVariables", SV_VER, nil, {
                 SHOW_DEFAULTS = false,
                 NOTIFY_BEFORE_PERCENT = 2,
             })

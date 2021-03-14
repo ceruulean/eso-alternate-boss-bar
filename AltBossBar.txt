@@ -5,11 +5,11 @@
 ; https://account.elderscrollsonline.com/add-on-terms
 
 ## APIVersion: 100034
-## Title: FancyBossBar
+## Title: Alternative Boss Bar
 ## Author: |c943810BulDeZir|r
 ## Version: 1.0
-## SavedVariables: FancyBossBarSavedVariables
+## SavedVariables: AltBossBarSavedVariables
 ## DependsOn: LibAddonMenu-2.0
 
-FancyBossBar.lua
-FancyBossBar.xml
+AltBossBar.lua
+AltBossBar.xml
