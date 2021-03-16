@@ -7,40 +7,98 @@ local SETTINGS
 local ICONSIZE = ZO_COMPASS_FRAME_HEIGHT_KEYBOARD-8
 
 local StupidBossNamesInsteadOfId = {
-    ["Ra Kotu"] = { 35, 0 }, ["Ра Коту"] = { 35, 0 },
-    ["The Warrior"] = { 35, 0 }, ["Krieger"] = { 35, 0 }, ["Guerrierd"] = { 35, 0 }, ["Воин"] = { 35, 0 },
-    ["Yokeda Kai"] = { 30, 0 }, ["Yokeda Kaid"] = { 30, 0 }, ["Йокеда Кай"] = { 30, 0 },
+    -- TRIALS --
+    -- Hel Ra Citadel
+    ["Ra Kotu"] = { 35 }, ["Ра Коту"] = { 35 },
+    ["The Warrior"] = { 35 }, ["Krieger"] = { 35 }, ["Guerrierd"] = { 35 }, ["Воин"] = { 35 },
+    ["Yokeda Kai"] = { 30 }, ["Yokeda Kaid"] = { 30 }, ["Йокеда Кай"] = { 30 },
+
+    -- Sanctum Ophidia
+    ["Stonebreaker"] = { 75, 50, 25 }, ["Steinbrecher"] = { 75, 50, 25 }, ["Briseroc"] = { 75, 50, 25 }, ["Камнелом"] = { 75, 50, 25 },
+
+    -- Aetherian Archive
+    ["Foundation Stone Atronach"] = { 75, 25 }, ["Grundsteinatronach"] = { 75, 25 }, ["Atronach de pierre des fondationsm"] = { 75, 25 }, ["Фундаментальный каменный атронах"] = { 75, 25 },
+    ["The Mage"] = { 16 }, ["Magierin"] = { 16 }, ["Maged"] = { 16 }, ["Маг"] = { 16 },
+
+    -- Maw of Lorkhaj
     ["Zhaj'hassa the Forgotten"] = { 70, 30 }, ["Zhaj'hassa der Vergessene"] = { 70, 30 }, ["Zhaj'hassa l'Oublié"] = { 70, 30 }, ["Жай'хасса Забытый"] = { 70, 30 },
-    ["Hunter-Killer Negatrix"] = { 30, 0 }, ["Abfänger Negatrix"] = { 30, 0 }, ["Chasseur-tueur négatrix"] = { 30, 0 }, ["Охотник-убийца Негатрикс"] = { 30, 0 },
-    ["Hunter-Killer Positrox"] = { 30, 0 }, ["Abfänger Positrox"] = { 30, 0 }, ["Chasseur-tueur positrox"] = { 30, 0 }, ["Охотник-убийца Позитрокс"] = { 30, 0 },
+
+    -- Halls of Fabrication
+    ["Hunter-Killer Negatrix"] = { 30 }, ["Abfänger Negatrix"] = { 30 }, ["Chasseur-tueur négatrix"] = { 30 }, ["Охотник-убийца Негатрикс"] = { 30 },
+    ["Hunter-Killer Positrox"] = { 30 }, ["Abfänger Positrox"] = { 30 }, ["Chasseur-tueur positrox"] = { 30 }, ["Охотник-убийца Позитрокс"] = { 30 },
+    ["Pinnacle Factotum"] = { 80, 60, 40, 20 }, ["Perfektioniertes Faktotum"] = { 80, 60, 40, 20 }, ["Factotum du Pinnacle"] = { 80, 60, 40, 20 }, ["Вершинный фактотум"] = { 80, 60, 40, 20 },
     ["Reactor"] = { 70, 40, 20 }, ["Reaktor"] = { 70, 40, 20 }, ["Réacteur"] = { 70, 40, 20 }, ["Реактор"] = { 70, 40, 20 },
     ["Reducer"] = { 70, 40, 20 }, ["Minderer"] = { 70, 40, 20 }, ["Réducteur"] = { 70, 40, 20 }, ["Редуктор"] = { 70, 40, 20 },
     ["Reclaimer"] = { 70, 40, 20 }, ["Rückforderer"] = { 70, 40, 20 }, ["Récupérateur"] = { 70, 40, 20 }, ["Регенератор"] = { 70, 40, 20 },
-    ["Assembly General"] = { 86, 66, 46, 26 }, ["Montagegeneral"] = { 86, 66, 46, 26 }, ["Assembleur général"] = { 86, 66, 46, 26 }, ["Сборочный генерал"] = { 86, 66, 46, 26 },
+    ["Assembly General"] = { 85, 65, 45, 25 }, ["Montagegeneral"] = { 85, 65, 45, 25 }, ["Assembleur général"] = { 85, 65, 45, 25 }, ["Сборочный генерал"] = { 85, 65, 45, 25 },
+
+    -- Asylum Sanctorium
     ["Saint Olms the Just"] = { 90, 75, 50, 25 }, ["Heiliger Olms der Gerechte"] = { 90, 75, 50, 25 }, ["Saint Olms le Juste"] = { 90, 75, 50, 25 }, ["Святой Олмс Справедливый"] = { 90, 75, 50, 25 },
-    ["Foundation Stone Atronach"] = { 75, 25 }, ["Grundsteinatronach"] = { 75, 25 }, ["Atronach de pierre des fondationsm"] = { 75, 25 }, ["Фундаментальный каменный атронах"] = { 75, 25 },
-    ["The Mage"] = { 16, 0 }, ["Magierin"] = { 16, 0 }, ["Maged"] = { 16, 0 }, ["Маг"] = { 16, 0 },
-    ["Tree-Minder Na-Kesh"] = { 70, 40 }, ["Baumhirtin Na-Kesh"] = { 70, 40 }, ["Sylvegarde Na-Keshd"] = { 70, 40 }, ["Древохранительница На-Кеш"] = { 70, 40 },
-    ["Domihaus the Bloody-Horned"] = { 80, 60, 40, 25 }, ["Domihaus der Blutgehörnte"] = { 80, 60, 40, 25 }, ["Domihaus Corne-Sanglante"] = { 80, 60, 40, 25 }, ["Домихаус Кровавые Рога"] = { 80, 60, 40, 25 },
-    ["Hiath the Battlemaster"] = { 75, 45, 20 }, ["Hiath der Kampfmeister"] = { 75, 45, 20 }, ["Hiath le Maître de guerre"] = { 75, 45, 20 }, ["Хиат Полководец"] = { 75, 45, 20 },
-    ["Stonebreaker"] = { 75, 50, 25 }, ["Steinbrecher"] = { 75, 50, 25 }, ["Briseroc"] = { 75, 50, 25 }, ["Камнелом"] = { 75, 50, 25 },
-    ["Velidreth"] = { 65, 30 }, ["Велидрет"] = { 65, 30 },
+
+    -- Cloudrest
+    ["Z'Maja"] = { 75, 50, 40, 25, 5 }, ["З'Маджа"] = { 75, 50, 40, 25, 5 },
+
+    -- Sunspire
+    ["Lokkestiiz"] = { 80, 50, 20 },
+    ["Yolnahkriin"] = { 75, 50, 25 },
+    ["Nahviintaas"] = { 80, 60, 40 },
+
+    -- Kyne’s Aegis
+    ["Yandir the Butcher"] = { 50 },
+    ["Captain Vrol"] = { 50 },
+    ["Lord Falgravn"] = { 90, 80, 70, 35 },
+
+    -- Dragonstar Arena
+    ["Champion Marcauld"] = { 70, 40 },
+    ["Anal'a Tu'wha"] = { 40 },
+    ["Vampire Lord Thisa"] = { 80 },
+    ["Hiath the Battlemaster"] = { 75, 50, 25 }, ["Hiath der Kampfmeister"] = { 75, 50, 25 }, ["Hiath le Maître de guerre"] = { 75, 50, 25 }, ["Хиат Полководец"] = { 75, 50, 25 },
+
+    -- Blackrose Prison
+    ["Tames-the-Beast"] = { 80, 60, 40 }, ["Zähmt-die-Bestien"] = { 80, 60, 40 }, ["Dompte-la-Bête"] = { 80, 60, 40 }, ["Приручает-Чудовищ"] = { 80, 60, 40 },
+    ["Lady Minara"] = { 80, 60, 40, 20 },
+
+    -- Maelstrom Arena
+    ["Matriarch Runa"] = { 75, 45 },
     ["Ash Titan"] = { 65, 35 }, ["Aschtitan"] = { 65, 35 }, ["Titan de cendres"] = { 65, 35 }, ["Пепельный титан"] = { 65, 35 },
+    ["Voriak Solkyn"] = { 70 },
+
+    -- Vateshran Hollows
+    ["Maebroogha The Void Lich"] = { 10 },
+    ["Shade of the Grove"] = { 80, 50, 20 },
+    ["Rahdgarak"] = { 95, 80, 65 },
+    ["Magma Queen"] = { 45 },
+    ["The Pyrelord"] = { 70, 35 },
+
+    -- DUNGEONS --
+    -- Tempest Island
     ["Stormfist"] = { 70, 40 }, ["Sturmfaust"] = { 70, 40 }, ["Poigne-tempête"] = { 70, 40 }, ["Штормовой Кулак"] = { 70, 40 },
+
+    -- City Of Ash 2
     ["Valkyn Skoria"] = { 60, 20 }, ["Валкин Скория"] = { 60, 20 },
-    ["Zaan the Scalecaller"] = { 80, 60, 40, 20 }, ["Zaan die Schuppenruferin"] = { 80, 60, 40, 20 }, ["Zaan la Mandécailles"] = { 80, 60, 40, 20 }, ["Заан Призывательница Чешуи"] = { 80, 60, 40, 20 },
-    ["Thurvokun"] = { 80, 60, 40, 20 }, ["Турвокун"] = { 80, 60, 40, 20 },
+
+    -- White Gold Tower
     ["Molag Kena"] = { 60, 30 }, ["Молаг Кена"] = { 60, 30 },
-    ["Z'Maja"] = { 75, 50, 25, 5 }, ["З'Маджа"] = { 75, 50, 25, 5 },
-    ["Tarcyr"] = { 80, 50, 20 }, ["Тарсир"] = { 80, 50, 20 },
+
+    -- Ruins of Mazzatun
+    ["Tree-Minder Na-Kesh"] = { 70, 40 }, ["Baumhirtin Na-Kesh"] = { 70, 40 }, ["Sylvegarde Na-Keshd"] = { 70, 40 }, ["Древохранительница На-Кеш"] = { 70, 40 },
+    -- Cradle of Shadows
+    ["Velidreth"] = { 65, 30 }, ["Велидрет"] = { 65, 30 },
+
+    -- Falkreath Hold
+    ["Domihaus the Bloody-Horned"] = { 80, 60, 40, 25 }, ["Domihaus der Blutgehörnte"] = { 80, 60, 40, 25 }, ["Domihaus Corne-Sanglante"] = { 80, 60, 40, 25 }, ["Домихаус Кровавые Рога"] = { 80, 60, 40, 25 },
+
+    -- Scalecaller Peak
     ["Doylemish Ironheart"] = { 80, 60, 40, 20 }, ["Doylemish Eisenherz"] = { 80, 60, 40, 20 }, ["Doylemish Cœur-de-Fer"] = { 80, 60, 40, 20 }, ["Дойлемиш Железное Сердце"] = { 80, 60, 40, 20 },
-    ["Vykosa the Ascendant"] = { 90, 70, 50, 30 }, ["Vykosa die Aufgestiegene"] = { 90, 70, 50, 30 }, ["Vykosa l'Ascendante"] = { 90, 70, 50, 30 }, ["Вайкоса Вознесшаяся"] = { 90, 70, 50, 30 },
-    ["Tames-the-Beast"] = { 60, 40 }, ["Zähmt-die-Bestien"] = { 60, 40 }, ["Dompte-la-Bête"] = { 60, 40 }, ["Приручает-Чудовищ"] = { 60, 40 },
-    ["Pinnacle Factotum"] = { 80, 60, 40, 20 }, ["Perfektioniertes Faktotum"] = { 80, 60, 40, 20 }, ["Factotum du Pinnacle"] = { 80, 60, 40, 20 }, ["Вершинный фактотум"] = { 80, 60, 40, 20 },
+    ["Zaan the Scalecaller"] = { 80, 60, 40, 20 }, ["Zaan die Schuppenruferin"] = { 80, 60, 40, 20 }, ["Zaan la Mandécailles"] = { 80, 60, 40, 20 }, ["Заан Призывательница Чешуи"] = { 80, 60, 40, 20 },
+    -- Fang Lair
+    ["Thurvokun"] = { 80, 60, 40, 20 }, ["Турвокун"] = { 80, 60, 40, 20 },
+
+    -- March of Sacrifices
+    ["Tarcyr"] = { 80, 50, 20 }, ["Тарсир"] = { 80, 50, 20 },
     ["Balorgh"] = { 80, 60, 40, 20 },
-    Yolnahkriin = { 75, 50, 25 },
-    Lokkestiiz = { 80, 50, 20 },
-    Nahviintaas = { 80, 60, 40 },
+    -- Moon Hunter Keep
+    ["Vykosa the Ascendant"] = { 90, 70, 50, 30 }, ["Vykosa die Aufgestiegene"] = { 90, 70, 50, 30 }, ["Vykosa l'Ascendante"] = { 90, 70, 50, 30 }, ["Вайкоса Вознесшаяся"] = { 90, 70, 50, 30 },
 }
 
 local function getBossPercentagesByName(name)
@@ -282,7 +340,7 @@ function ABB_Initialize(topLevelCtrl)
     local function OnAddOnLoaded(_, addonName)
         if addonName == NAME then
 
-            SETTINGS = ZO_SavedVars:NewCharacterIdSettings("AltBossBarSavedVariables", SV_VER, nil, {
+            SETTINGS = ZO_SavedVars:NewAccountWide("AltBossBarSavedVariables", SV_VER, nil, {
                 SHOW_DEFAULTS = false,
                 NOTIFY_BEFORE_PERCENT = 2,
             })
