@@ -153,7 +153,6 @@ function ABB_BossBar:Initialize(bossTag, topLevelCtrl, previousBar)
     powerUpdateEventHandler:AddFilterForEvent(REGISTER_FILTER_UNIT_TAG, bossTag)
     self.control:RegisterForEvent(EVENT_PLAYER_ACTIVATED, function() self:UpdateWidth() end)
     self.control:RegisterForEvent(EVENT_SCREEN_RESIZED, function() self:UpdateWidth() end)
-    self.control:RegisterForEvent(EVENT_GAMEPAD_PREFERRED_MODE_CHANGED, function() self:ApplyStyle() end)
 
     self:ApplyStyle()
     self:ApplyAnchors()
@@ -168,6 +167,9 @@ function ABB_BossBar:CreateLine(percent)
 end
 
 function ABB_BossBar:Refresh(force)
+    if force then
+        self:ApplyStyle()
+    end
     local bossName = GetUnitName(self.unitTag)
     self.bossPercentages = getBossPercentagesByName(bossName)
     self.percentLinePool:ReleaseAllObjects()
@@ -355,6 +357,7 @@ function ABB_Initialize(topLevelCtrl)
             InitBars(topLevelCtrl)
             topLevelCtrl:RegisterForEvent(EVENT_BOSSES_CHANGED, function(_, forceReset) RefreshAllBosses(forceReset) end)
             topLevelCtrl:RegisterForEvent(EVENT_PLAYER_ACTIVATED, function() RefreshAllBosses() end)
+            topLevelCtrl:RegisterForEvent(EVENT_GAMEPAD_PREFERRED_MODE_CHANGED, function() RefreshAllBosses(true) end)
 
             EVENT_MANAGER:UnregisterForEvent(NAME, EVENT_ADD_ON_LOADED)
         end
