@@ -48,6 +48,10 @@ local StupidBossNamesInsteadOfId = {
     ["Captain Vrol"] = { 50 },
     ["Lord Falgravn"] = { 90, 80, 70, 35 },
 
+    ["Oaxiltso"] = {  },
+    ["Flame-Herald Bahsei"] = { 90, 85, 80, 75, 65, 60, 55, 50, 45, 10 },
+    ["Xalvakka"] = { 70, 40 },
+
     -- Dragonstar Arena
     ["Champion Marcauld"] = { 70, 40 },
     ["Anal'a Tu'wha"] = { 40 },
