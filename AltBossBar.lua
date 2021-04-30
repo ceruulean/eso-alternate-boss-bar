@@ -49,7 +49,7 @@ local StupidBossNamesInsteadOfId = {
     ["Lord Falgravn"] = { 90, 80, 70, 35 },
 
     -- Rockgrove
-    ["Oaxiltso"] = {  },
+    ["Oaxiltso"] = { 90, 75, 50, 25 },
     ["Flame-Herald Bahsei"] = { 90, 85, 80, 75, 70, 65, 60, 55, 10 },
     ["Xalvakka"] = { 70, 40 },
 
