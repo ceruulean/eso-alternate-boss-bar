@@ -1,0 +1,18 @@
+stages:
+  - publish
+
+variables:
+  ESOUI_ENDPOINT: https://api.esoui.com/addons/update
+  ESOUI_ADDON_ID: 3052
+  ESOUI_COMPATIBLE_IDS: 6.3.5,7.0
+  ESOUI_VERSION: 1.0.$CI_PIPELINE_IID
+  ESOUI_DIRNAME: AltBossBar
+  
+publish:
+  only:
+    - master
+  image: eamonwoortman/alpine-curl-zip
+  stage: publish
+  script:
+    - 'mkdir /tmp/${ESOUI_DIRNAME} && cp -r ./* /tmp/${ESOUI_DIRNAME} && cd /tmp && zip -r ${ESOUI_DIRNAME}.zip ./${ESOUI_DIRNAME} -x ".*"'
+    - 'curl --fail -s -L -H "x-api-token: ${ESOUI_TOKEN}" -F "id=${ESOUI_ADDON_ID}" -F "version=${ESOUI_VERSION}" -F "compatible=${ESOUI_COMPATIBLE_IDS}" -F "updatefile=@/tmp/${ESOUI_DIRNAME}.zip"  ${ESOUI_ENDPOINT}'
