@@ -50,7 +50,7 @@ local StupidBossNamesInsteadOfId = {
 
     -- Rockgrove
     ["Oaxiltso"] = { 90, 75, 50, 25 },
-    ["Flame-Herald Bahsei"] = { 90, 85, 80, 75, 70, 65, 60, 55, 10 },
+    ["Flame-Herald Bahsei"] = { 90, 85, 80, 75, 70, 65, 60, 50, 40, 25, 20, 10 },
     ["Xalvakka"] = { 70, 40 },
 
     -- Dragonstar Arena
