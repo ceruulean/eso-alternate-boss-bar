@@ -4,7 +4,7 @@ stages:
 variables:
   ESOUI_ENDPOINT: https://api.esoui.com/addons/update
   ESOUI_ADDON_ID: 3052
-  ESOUI_COMPATIBLE_IDS: 7.2.5
+  ESOUI_COMPATIBLE_IDS: 7.3.5
   ESOUI_VERSION: 1.0.$CI_PIPELINE_IID
   ESOUI_DIRNAME: AltBossBar
   
