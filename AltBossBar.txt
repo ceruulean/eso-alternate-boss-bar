@@ -4,7 +4,7 @@
 ; other countries. All rights reserved.
 ; https://account.elderscrollsonline.com/add-on-terms
 
-## APIVersion: 101034
+## APIVersion: 101038
 ## Title: Alternative Boss Bar
 ## Author: |c943810BulDeZir|r
 ## Version: 1.0

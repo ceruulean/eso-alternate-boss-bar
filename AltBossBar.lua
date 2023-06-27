@@ -53,6 +53,15 @@ local StupidBossNamesInsteadOfId = {
     ["Flame-Herald Bahsei"] = { 90, 85, 80, 75, 70, 65, 60, 50, 40, 25, 20, 10 },
     ["Xalvakka"] = { 70, 40 },
 
+    -- 2022Q2 Dreadsail Reef
+    ["Lylanar"] = { 80, 70 },
+    ["Turlassil"] = { 80, 70 },
+    ["Tideborn Taleria"] = { 85, 50, 35, 20 },
+
+    -- 2023Q2 Sanity's Edge
+    ["Exarchanic Yaseyla"] = { 90, 70, 60, 50, 35, 30, 20, 10 },
+    ["Ansuul the Tormentor"] = { 90, 80, 70, 60, 50, 40, 30, 20 },
+
     -- Dragonstar Arena
     ["Champion Marcauld"] = { 70, 40 },
     ["Anal'a Tu'wha"] = { 40 },
@@ -90,6 +99,11 @@ local StupidBossNamesInsteadOfId = {
     -- Cradle of Shadows
     ["Velidreth"] = { 65, 30 }, ["Велидрет"] = { 65, 30 },
 
+    -- Bloodroot Forge
+    ["Mathgamain"] = { 75, 50, 25 },
+    ["Caillaoife"] = { 75, 50, 30 },
+    ["Galchobhar"] = { 50 },
+    ["Earthgore Amalgam"] = { 80, 50 },
     -- Falkreath Hold
     ["Domihaus the Bloody-Horned"] = { 80, 60, 40, 25 }, ["Domihaus der Blutgehörnte"] = { 80, 60, 40, 25 }, ["Domihaus Corne-Sanglante"] = { 80, 60, 40, 25 }, ["Домихаус Кровавые Рога"] = { 80, 60, 40, 25 },
 
@@ -104,6 +118,81 @@ local StupidBossNamesInsteadOfId = {
     ["Balorgh"] = { 80, 60, 40, 20 },
     -- Moon Hunter Keep
     ["Vykosa the Ascendant"] = { 90, 70, 50, 30 }, ["Vykosa die Aufgestiegene"] = { 90, 70, 50, 30 }, ["Vykosa l'Ascendante"] = { 90, 70, 50, 30 }, ["Вайкоса Вознесшаяся"] = { 90, 70, 50, 30 },
+
+    -- 2019Q1 Depths of Malatar
+    ["The Scavenging Maw"] = { 80, 50, 25 },
+    ["The Weeping Woman"] = { 75, 55, 35 },
+    ["Symphony of Blades"] = { 80, 50, 11 },
+    -- 2019Q1 Frostvault
+    ["Icestalker"] = { 90, 75, 50, 30 },
+    ["Warlord Tzogvin"] = { 70, 33 },
+    ["Vault Protector"] = { 90, 75, 50 },
+    ["The Stonekeeper"] = { 70, 55, 30 },
+
+    -- 2019Q3 Moongrave Fane
+    ["Dro'zakar"] = { 90, 60, 30 },
+    ["Kujo Kethba"] = { 90, 70, 50, 30 },
+    ["Grundwulf"] = { 70, 50, 30, 20, 10 },
+    -- 2019Q3 Lair of Maarselok
+    ["Maarselok"] = { 90, 80, 70, 65, 55, 50, 25 },
+
+    -- 2020Q1 Icereach
+    ["Stormborn Revenant"] = { 55, 40 },
+    ["Mother Ciannait"] = { 90, 80, 70, 60, 50, 40, 30, 20 },
+    -- 2020Q1 Unhallowed Grave
+    ["Hakgrym the Howler"] = { 70, 20 },
+    ["Keeper of the Kiln"] = { 80, 70, 60, 50, 40 },
+    ["Voria the Heart-Thief"] = { 75, 40 },
+    ["Eternal Aegis"] = { 90, 70, 50, 30 },
+    ["Ondagore the Mad"] = { 80, 60, 40, 20 },
+    ["Voria's Masterpiece"] = { 90, 40 },
+    ["Kjalnar Tombskald"] = { 50 },
+
+    -- 2020Q3 Castle Thorn
+    ["Vaduroth"] = { 75, 50, 25 },
+    ["Lady Thorn"] = { 60, 20 },
+    -- 2020Q3 Stone Garden
+    ["Arkasis the Mad Alchemist"] = { 60, 20, 10 },
+
+    -- 2021Q1 Black Drake Villa
+    ["Kinras Ironeye"] = { 75, 30 },
+    ["Captain Geminus"] = { 70, 30 },
+    ["Pyroturge Encratis"] = { 60 },
+    ["Sentinel Aksalaz"] = { 85, 60, 35 },
+    -- 2021Q1 The Cauldron
+    ["Taskmaster Viccia"] = { 75, 50, 25 },
+    ["Molten Guardian"] = { 25 },
+    ["Baron Zaudrus"] = { 60, 50, 25 },
+
+    -- 2021Q3 Red Petal Bastion
+    ["Eliam Merick "] = { 80, 50, 30 },
+    -- 2021Q3 The Dread Cellar
+    ["Magma Incarnate"] = { 60, 30 },
+
+    -- 2022Q1 Shipwright's Regret
+    ["Foreman Bradiggan"] = { 60, 30 },
+    ["Nazaray"] = { 70, 30 },
+    ["Captain Numirril"] = { 85, 40 },
+    -- 2022Q1 Coral Aerie
+    ["Maligalig"] = { 65, 35 },
+    ["Sarydil"] = { 70, 35 },
+    ["Varallion"] = { 90, 80, 50 },
+    ["Shield Guardian"] = { 65, 25 },
+
+    -- 2022Q3 Earthen Root Enclave
+    ["Corruption of Stone"] = { 80, 60, 30 },
+    ["Corruption of Root"] = { 66, 33 },
+    ["Archdruid Devyric"] = { 70, 20 },
+    -- 2022Q3 Graven Deep
+    ["Zelvraak the Unbreathing"] = { 75, 50, 25 },
+
+    -- 2023Q1 Scrivener's Hall
+    ["Riftmaster Naqri"] = { 80, 55, 35 },
+    ["Ozezan the Inferno"] = { 50, 40, 20 },
+    -- 2023Q1 Bal Sunnar
+    ["Kovan Giryon"] = { 65, 45, 20 },
+    ["Roksa the Warped"] = { 70, 40 },
+    ["Matriarch Lladi Telvanni"] = { 70, 35 },
 }
 
 local function getBossPercentagesByName(name)
