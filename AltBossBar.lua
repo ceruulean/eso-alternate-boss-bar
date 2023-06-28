@@ -6,6 +6,14 @@ local SETTINGS
 
 local ICONSIZE = ZO_COMPASS_FRAME_HEIGHT_KEYBOARD-8
 
+local OVERSHIELD_COLOR_START = ZO_ColorDef:New("392952")
+local OVERSHIELD_COLOR_END = ZO_ColorDef:New("968498")
+local UNWAVERING_COLOR_START = ZO_ColorDef:New("7D7750")
+local UNWAVERING_COLOR_END = ZO_ColorDef:New("DDDDCB")
+
+local OVERSHIELD_GRADIENT = { OVERSHIELD_COLOR_START, OVERSHIELD_COLOR_END }
+local UNWAVERING_GRADIENT = { UNWAVERING_COLOR_START, UNWAVERING_COLOR_END }
+
 local StupidBossNamesInsteadOfId = {
     -- TRIALS --
     -- Hel Ra Citadel
@@ -236,6 +244,8 @@ function ABB_BossBar:Initialize(bossTag, topLevelCtrl, previousBar)
     self.nextBar = nil
     self.percentLinePool = PercentLineManager:New(self.healthBar)
     self.bossPercentages = nil
+    self.hasShield = false
+    self.hasImmunity = false
 
     ZO_StatusBar_SetGradientColor(self.healthBar, ZO_POWER_BAR_GRADIENT_COLORS[POWERTYPE_HEALTH])
 
@@ -247,6 +257,13 @@ function ABB_BossBar:Initialize(bossTag, topLevelCtrl, previousBar)
     powerUpdateEventHandler:AddFilterForEvent(REGISTER_FILTER_UNIT_TAG, bossTag)
     self.control:RegisterForEvent(EVENT_PLAYER_ACTIVATED, function() self:UpdateWidth() end)
     self.control:RegisterForEvent(EVENT_SCREEN_RESIZED, function() self:UpdateWidth() end)
+
+    self.control:RegisterForEvent(EVENT_UNIT_ATTRIBUTE_VISUAL_ADDED, function(eventCode, unitTag, ...) self:OnUavUpdate(...) end)
+    self.control:AddFilterForEvent(EVENT_UNIT_ATTRIBUTE_VISUAL_ADDED, REGISTER_FILTER_UNIT_TAG, self.unitTag)
+    self.control:RegisterForEvent(EVENT_UNIT_ATTRIBUTE_VISUAL_UPDATED, function(eventCode, unitTag, ...) self:OnUavUpdate(...) end)
+    self.control:AddFilterForEvent(EVENT_UNIT_ATTRIBUTE_VISUAL_UPDATED, REGISTER_FILTER_UNIT_TAG, self.unitTag)
+    self.control:RegisterForEvent(EVENT_UNIT_ATTRIBUTE_VISUAL_REMOVED, function(eventCode, unitTag, ...) self:OnUavRemoval(...) end)
+    self.control:AddFilterForEvent(EVENT_UNIT_ATTRIBUTE_VISUAL_REMOVED, REGISTER_FILTER_UNIT_TAG, self.unitTag)
 
     self:ApplyStyle()
     self:ApplyAnchors()
@@ -310,6 +327,53 @@ function ABB_BossBar:OnPowerUpdate(health, maxHealth, force)
     end
 end
 
+function ABB_BossBar:OnUavUpdate(unitAttributeVisual, _, _, _, value1)
+    if (unitAttributeVisual == ATTRIBUTE_VISUAL_UNWAVERING_POWER) then
+        if value1 ~= nil and value1 > 0 then
+            if not self.hasImmunity then
+                self.hasImmunity = true
+                ZO_StatusBar_SetGradientColor(self.healthBar, UNWAVERING_GRADIENT)
+                self.healthLeftBgBar:SetColor(UNWAVERING_COLOR_START:UnpackRGBA())
+            end
+        else
+            self:OnUavRemoval(unitAttributeVisual)
+        end
+        return
+    end
+    if (unitAttributeVisual == ATTRIBUTE_VISUAL_POWER_SHIELDING and not self.hasImmunity) then
+        if value1 ~= nil and value1 > 0 then
+            if not self.hasShield then
+                self.hasShield = true
+                ZO_StatusBar_SetGradientColor(self.healthBar, OVERSHIELD_GRADIENT)
+                self.healthLeftBgBar:SetColor(OVERSHIELD_COLOR_START:UnpackRGBA())
+            end
+        else
+            self:OnUavRemoval(unitAttributeVisual)
+        end
+    end
+end
+
+function ABB_BossBar:OnUavRemoval(unitAttributeVisual)
+    if (unitAttributeVisual == ATTRIBUTE_VISUAL_UNWAVERING_POWER) then
+        if self.hasImmunity then
+            self.hasImmunity = false
+            self:ResetColors()
+        end
+        return
+    end
+    if (unitAttributeVisual == ATTRIBUTE_VISUAL_POWER_SHIELDING and not self.hasImmunity) then
+        if self.hasShield then
+            self.hasShield = false
+            self:ResetColors()
+        end
+    end
+end
+
+function ABB_BossBar:ResetColors()
+    ZO_StatusBar_SetGradientColor(self.healthBar, ZO_POWER_BAR_GRADIENT_COLORS[COMBAT_MECHANIC_FLAGS_HEALTH])
+    self.healthLeftBgBar:SetColor(GetInterfaceColor(INTERFACE_COLOR_TYPE_POWER_START, COMBAT_MECHANIC_FLAGS_HEALTH))
+end
+
 function ABB_BossBar:ApplyAnchors()
     self.control:ClearAnchors()
     if self.previousBar ~= nil then
@@ -335,6 +399,9 @@ end
 
 function ABB_BossBar:Hide()
     self.control:SetHidden(true)
+    self.hasShield = false
+    self.hasImmunity = false
+    self:ResetColors()
     if self.nextBar ~= nil then
         self.nextBar:Hide()
     end
