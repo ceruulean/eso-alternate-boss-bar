@@ -10,9 +10,12 @@ local OVERSHIELD_COLOR_START = ZO_ColorDef:New("392952")
 local OVERSHIELD_COLOR_END = ZO_ColorDef:New("968498")
 local UNWAVERING_COLOR_START = ZO_ColorDef:New("7D7750")
 local UNWAVERING_COLOR_END = ZO_ColorDef:New("DDDDCB")
+local HP_COLOR_START = ZO_ColorDef:New("722323")
+local HP_COLOR_END = ZO_ColorDef:New("DA3030")
 
 local OVERSHIELD_GRADIENT = { OVERSHIELD_COLOR_START, OVERSHIELD_COLOR_END }
 local UNWAVERING_GRADIENT = { UNWAVERING_COLOR_START, UNWAVERING_COLOR_END }
+local HP_GRADIENT = { HP_COLOR_START, HP_COLOR_END } -- equal to ZO_POWER_BAR_GRADIENT_COLORS[COMBAT_MECHANIC_FLAGS_HEALTH]
 
 local StupidBossNamesInsteadOfId = {
     -- TRIALS --
@@ -247,7 +250,7 @@ function ABB_BossBar:Initialize(bossTag, topLevelCtrl, previousBar)
     self.hasShield = false
     self.hasImmunity = false
 
-    ZO_StatusBar_SetGradientColor(self.healthBar, ZO_POWER_BAR_GRADIENT_COLORS[POWERTYPE_HEALTH])
+    self:ResetColors()
 
     local function PowerUpdateHandlerFunction(unitTag, powerPoolIndex, powerType, powerPool, powerPoolMax)
         self:OnPowerUpdate(powerPool, powerPoolMax, false)
@@ -370,8 +373,8 @@ function ABB_BossBar:OnUavRemoval(unitAttributeVisual)
 end
 
 function ABB_BossBar:ResetColors()
-    ZO_StatusBar_SetGradientColor(self.healthBar, ZO_POWER_BAR_GRADIENT_COLORS[COMBAT_MECHANIC_FLAGS_HEALTH])
-    self.healthLeftBgBar:SetColor(GetInterfaceColor(INTERFACE_COLOR_TYPE_POWER_START, COMBAT_MECHANIC_FLAGS_HEALTH))
+    ZO_StatusBar_SetGradientColor(self.healthBar, HP_GRADIENT)
+    self.healthLeftBgBar:SetColor(HP_COLOR_START:UnpackRGBA())
 end
 
 function ABB_BossBar:ApplyAnchors()
