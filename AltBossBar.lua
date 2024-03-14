@@ -324,7 +324,7 @@ function ABB_BossBar:OnPowerUpdate(health, maxHealth, force)
     self.healthLeftBgBar:SetValue((health > 0 and 1 or 0))
 
     if health > 0 and not IsUnitDead(self.unitTag) then
-        self.healthText:SetText(self:FormatPercent(health, maxHealth))
+        self.healthText:SetText(ZO_AbbreviateAndLocalizeNumber(health, NUMBER_ABBREVIATION_PRECISION_TENTHS, false) .. " " .. self:FormatPercent(health, maxHealth))
     else
         self.healthText:SetText(zo_iconFormat("esoui/art/icons/mapkey/mapkey_groupboss.dds", ICONSIZE, ICONSIZE))
     end
