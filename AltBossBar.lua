@@ -204,6 +204,15 @@ local StupidBossNamesInsteadOfId = {
     ["Kovan Giryon"] = { 65, 45, 20 }, ["Кован Гирион"] = { 65, 45, 20 }, ["コヴァン・ジリョン"] = { 65, 45, 20 }, ["科万·吉里恩"] = { 65, 45, 20 },
     ["Roksa the Warped"] = { 70, 40 }, ["Roksa die Verkrümmte"] = { 70, 40 }, ["Roksa le Déformé"] = { 70, 40 }, ["Рокса Искалеченный"] = { 70, 40 }, ["Roksa el Deformado"] = { 70, 40 }, ["歪められたロクサ"] = { 70, 40 }, ["扭曲者洛科萨"] = { 70, 40 },
     ["Matriarch Lladi Telvanni"] = { 70, 35 }, ["Matriarchin Lladi Telvanni"] = { 70, 35 }, ["La matriarche Lladi Telvanni"] = { 70, 35 }, ["Матриарх Ллади Телванни"] = { 70, 35 }, ["La matriarca Lladi Telvanni"] = { 70, 35 }, ["ルラディ・テルヴァンニ女族長"] = { 70, 35 }, ["女族长雷拉蒂·泰尔瓦尼"] = { 70, 35 },
+
+    -- Oathsworn Pit
+    ["Anthelmir's Construct"] = { 70 },
+    ["Aradros the Awakened"] = { 51 },
+
+    -- Bedlam Veil
+    ["Shattered Champion"] = { 70, 50 },
+    ["Darkshard"] = { 80, 60, 40 },
+    ["The Blind"] = { 81, 61, 41, 21 },
 }
 
 local function getBossPercentagesByName(name)
