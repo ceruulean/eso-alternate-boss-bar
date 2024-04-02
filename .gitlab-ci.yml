@@ -11,7 +11,7 @@ variables:
 publish:
   only:
     - master
-  image: eamonwoortman/alpine-curl-zip
+  image: registry.gitlab.com/teso-addons/publish-docker-image
   stage: publish
   script:
     - 'mkdir /tmp/${ESOUI_DIRNAME} && cp -r ./* /tmp/${ESOUI_DIRNAME} && cd /tmp && zip -r ${ESOUI_DIRNAME}.zip ./${ESOUI_DIRNAME} -x ".*"'
