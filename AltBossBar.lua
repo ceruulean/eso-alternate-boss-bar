@@ -5,6 +5,7 @@ local SV_VER = 3
 local SETTINGS
 
 local ICONSIZE = ZO_COMPASS_FRAME_HEIGHT_KEYBOARD-8
+local ABB_TEMPLATE_NAME = "ABB_BossBar_Asym"
 
 local OVERSHIELD_COLOR_START = ZO_ColorDef:New("392952")
 local OVERSHIELD_COLOR_END = ZO_ColorDef:New("968498")
@@ -13,6 +14,10 @@ local UNWAVERING_COLOR_END = ZO_ColorDef:New("DDDDCB")
 
 local OVERSHIELD_GRADIENT = { OVERSHIELD_COLOR_START, OVERSHIELD_COLOR_END }
 local UNWAVERING_GRADIENT = { UNWAVERING_COLOR_START, UNWAVERING_COLOR_END }
+
+-- equal to ZO_POWER_BAR_GRADIENT_COLORS[COMBAT_MECHANIC_FLAGS_HEALTH]
+local DEFAULT_HP_COLOR_START = { r = 0.447, g = 0.137, b = 0.137 }
+local DEFAULT_HP_COLOR_END = { r = 0.855, g = 0.188, b = 0.188 }
 
 local VERTICAL_OFFSET = 0
 local COMPASS_WIDTH = 0
@@ -219,13 +224,13 @@ local function getBossPercentagesByName(name)
     if StupidBossNamesInsteadOfId[name] ~= nil then
         return StupidBossNamesInsteadOfId[name]
     end
-    if SETTINGS.SHOW_DEFAULTS then
+    if SETTINGS.ShowDefaults then
         return { 75, 50, 25 } -- default Percentages
     end
 end
 
 local function getWidth()
-    return zo_clamp(GuiRoot:GetWidth() * .35, 400, 800)
+    return zo_clamp(GuiRoot:GetWidth() * .35 - 20, 400, 800)
 end
 
 local PercentLineManager = ZO_ControlPool:Subclass()
@@ -245,7 +250,7 @@ end
 function ABB_BossBar:Initialize(bossTag, topLevelCtrl, previousBar)
     self.unitTag = bossTag
     self.parent = topLevelCtrl
-    self.control = CreateControlFromVirtual("ABB_Frame"..bossTag, topLevelCtrl, "ABB_BossBar")
+    self.control = CreateControlFromVirtual("ABB_Frame"..bossTag, topLevelCtrl, ABB_TEMPLATE_NAME)
     self.control:SetHidden(true)
     local healthControl = GetControl(self.control, "Health")
     self.nameText = GetControl(healthControl, "Name")
@@ -258,7 +263,7 @@ function ABB_BossBar:Initialize(bossTag, topLevelCtrl, previousBar)
     self.bossPercentages = nil
     self.hasShield = false
     self.hasImmunity = false
-	self.scaleLength = 1.0
+	self.scaleX = 1.0
 
     self:ResetColors()
 
@@ -294,10 +299,12 @@ function ABB_BossBar:Refresh(force)
     if force then
         self:ApplyStyle()
 		self:ResetColors()
+		self:ApplyAnchors()
+	else
+		self:UpdateWidth()
     end
     local bossName = GetUnitName(self.unitTag)
 	local health, maxHealth = GetUnitPower(self.unitTag, POWERTYPE_HEALTH)
-	self.control:SetWidth(getWidth() * self.scaleLength)
     self.bossPercentages = getBossPercentagesByName(bossName)
     self.percentLinePool:ReleaseAllObjects()
     if self.bossPercentages ~= nil then
@@ -323,7 +330,7 @@ function ABB_BossBar:FormatPercent(health, maxHealth)
     end
     if self.bossPercentages ~= nil then
         for i = 1, #self.bossPercentages do
-            if (percent >= self.bossPercentages[i] and percent <= self.bossPercentages[i] + SETTINGS.NOTIFY_BEFORE_PERCENT) then
+            if (percent >= self.bossPercentages[i] and percent <= self.bossPercentages[i] + SETTINGS.NotifyBeforePercent) then
                 return zo_iconFormat("esoui/art/interaction/questnewavailable.dds", ICONSIZE-8, ICONSIZE-8)..percentText..'%'
             end
         end
@@ -385,7 +392,7 @@ function ABB_BossBar:OnUavRemoval(unitAttributeVisual)
 end
 
 function ABB_BossBar:ResetColors()
-	local gradient = {ZO_ColorDef:New(unpack(SETTINGS.HP_COLOR_START) ), ZO_ColorDef:New(unpack(SETTINGS.HP_COLOR_END))}
+	local gradient = {ZO_ColorDef:New(unpack(SETTINGS.HpColorStart) ), ZO_ColorDef:New(unpack(SETTINGS.HpColorEnd))}
     ZO_StatusBar_SetGradientColor(self.healthBar, gradient)
     self.healthLeftBgBar:SetColor(gradient[1]:UnpackRGBA())
 end
@@ -396,17 +403,17 @@ function ABB_BossBar:ApplyAnchors()
         self.previousBar.nextBar = self
         self.control:SetAnchor(TOPLEFT, self.previousBar.control, BOTTOMLEFT)
 	else
-        self.control:SetAnchor(TOPLEFT, self.parent, BOTTOMLEFT, (getWidth() / -2), VERTICAL_OFFSET)
+        self.control:SetAnchor(TOPLEFT, self.parent, BOTTOMLEFT, 0, VERTICAL_OFFSET)
     end
 end
 
 function ABB_BossBar:ApplyStyle()
-    ApplyTemplateToControl(self.control, ZO_GetPlatformTemplate("ABB_BossBar"))
+    ApplyTemplateToControl(self.control, ZO_GetPlatformTemplate(ABB_TEMPLATE_NAME))
     self:UpdateWidth()
 end
 
 function ABB_BossBar:UpdateWidth()
-    self.control:SetWidth(getWidth())
+    self.control:SetWidth(getWidth() * self.scaleX)
 end
 
 function ABB_BossBar:Show()
@@ -443,12 +450,19 @@ local function InitBars(topLevelCtrl)
 
 end
 
-local function RefreshAllBosses(forceReset)
-    local lastBossBar
+local function SetVerticalOffset()
+	if SETTINGS.ReplaceCompass then
+		VERTICAL_OFFSET = 0
+	else
+		VERTICAL_OFFSET = ZO_CompassFrame:GetHeight()
+	end
+end
+
+local function ScaleBossBars()
 	local highestHealthValue = 1
 	local bossOrder = {}
-
-	if SETTINGS.SCALE_HP_PROPORTIONAL then
+	
+	if SETTINGS.ScaleHpProportional then
 		for i = 1, MAX_BOSSES do
 			local bossTag = "boss"..i
 			local _, maxHealth = GetUnitPower(bossTag, POWERTYPE_HEALTH)
@@ -457,30 +471,25 @@ local function RefreshAllBosses(forceReset)
 				highestHealthValue = maxHealth
 			end
 		end
-		-- for i = 1, MAX_BOSSES do
-			-- local bossTag = "boss"..i
-			-- local _, maxHealth = GetUnitPower(bossBars[bossTag].unitTag, POWERTYPE_HEALTH)
-			-- local s = (maxHealth / highestHealthValue)
-			-- bossBars[bossTag].sortValue = s
-		-- end
-	
-	table.sort(bossOrder, function(a,b) return a.hp > b.hp end)
-	for i, val in ipairs(bossOrder) do
-		if DoesUnitExist(val.tag) then
-			bossBars[i].unitTag = val.tag
-			bossBars[i].scaleLength = val.hp / highestHealthValue
+
+		table.sort(bossOrder, function(a,b) return a.hp > b.hp end)
+		for i, val in ipairs(bossOrder) do
+			if DoesUnitExist(val.tag) then
+				bossBars[i].unitTag = val.tag
+				bossBars[i].scaleX = zo_clamp(val.hp / highestHealthValue, 0.3, 1.0)
+			end
+		end
+	else
+		for i = 1, MAX_BOSSES do
+			bossBars[i].scaleX = 1.0
 		end
 	end
+end
 
+local function RefreshAllBosses(forceReset)
+    local lastBossBar	
 
-	-- lastBossBar = nil
-	-- for bossTag in pairs(bossBars) do
-		-- bossBars[bossTag].previousBar = lastBossBar
-		-- lastBossBar = bossBars[bossTag]
-	-- end
-	end
-
-	local barwidth = getWidth()
+	ScaleBossBars()
     for i = 1, MAX_BOSSES do
         local bossTag = "boss"..i
 
@@ -493,11 +502,9 @@ local function RefreshAllBosses(forceReset)
         end
 		lastBossBar = bossBars[i]
     end
-		
-	--lastBossBar = bossBars[#bossBars]
 
     if lastBossBar ~= nil then
-        COMPASS_FRAME_FRAGMENT:SetHiddenForReason("ABBar", SETTINGS.REPLACE_COMPASS)
+        COMPASS_FRAME_FRAGMENT:SetHiddenForReason("ABBar", SETTINGS.ReplaceCompass)
         AttachTargetTo(lastBossBar.control)
     else
         COMPASS_FRAME_FRAGMENT:SetHiddenForReason("ABBar", false)
@@ -523,7 +530,7 @@ local function InitializeAddonMenu()
         name = "Alternative Boss Bars",
         displayName = "Alternative Boss Bars",
         author = "|c943810BulDeZir|r",
-        version = string.format('|c00FF00%s|r', 1),
+        version = string.format('|c00FF00%s|r', 3),
         registerForRefresh = true,
 		registerForDefaults = true,
     })
@@ -532,21 +539,21 @@ local function InitializeAddonMenu()
 	    {
             type = "checkbox",
             name = "Replace compass",
-			requiresReload = true,
 			tooltip = "If disabled, bars will show under the compass instead of replacing it.",
-            getFunc = function() return SETTINGS.REPLACE_COMPASS end,
+            getFunc = function() return SETTINGS.ReplaceCompass end,
             setFunc = function(newValue)
-                SETTINGS.REPLACE_COMPASS = newValue
-                RefreshAllBosses()
+                SETTINGS.ReplaceCompass = newValue
+				SetVerticalOffset()
+                RefreshAllBosses(true)
             end,
 			default = true,
         },
         {
             type = "checkbox",
             name = "Show Default Percent Lines (75%, 50%, 25%)",
-            getFunc = function() return SETTINGS.SHOW_DEFAULTS end,
+            getFunc = function() return SETTINGS.ShowDefaults end,
             setFunc = function(newValue)
-                SETTINGS.SHOW_DEFAULTS = newValue
+                SETTINGS.ShowDefaults = newValue
                 RefreshAllBosses()
             end,
 			default = false,
@@ -557,9 +564,9 @@ local function InitializeAddonMenu()
             min = 0,
             max = 5,
             step = 1,
-            getFunc = function() return SETTINGS.NOTIFY_BEFORE_PERCENT end,
+            getFunc = function() return SETTINGS.NotifyBeforePercent end,
             setFunc = function(newValue)
-                SETTINGS.NOTIFY_BEFORE_PERCENT = zo_round(newValue)
+                SETTINGS.NotifyBeforePercent = zo_round(newValue)
                 RefreshAllBosses()
             end,
 			default = 2,
@@ -567,36 +574,35 @@ local function InitializeAddonMenu()
 		{
             type = "checkbox",
             name = "Proportional Bars",
-			requiresReload = true,
 			tooltip = "Bosses with less max HP have shorter bars, and bars are sorted from greatest to least.",
-            getFunc = function() return SETTINGS.SCALE_HP_PROPORTIONAL end,
+            getFunc = function() return SETTINGS.ScaleHpProportional end,
             setFunc = function(newValue)
-                SETTINGS.SCALE_HP_PROPORTIONAL = newValue
-                RefreshAllBosses()
+                SETTINGS.ScaleHpProportional = newValue
+                RefreshAllBosses(true)
             end,
 			default = false,
         },
 		{
 			type = "colorpicker",
 			name = "HP Color Gradient Start",
-			getFunc = function() return unpack(SETTINGS.HP_COLOR_START) end,	--(alpha is optional)
+			getFunc = function() return unpack(SETTINGS.HpColorStart) end,	--(alpha is optional)
 			setFunc = function(r,g,b,a)
-				SETTINGS.HP_COLOR_START = { r,g,b }
+				SETTINGS.HpColorStart = { r,g,b }
 				RefreshAllBosses(true)
 			end,
 			width = "half",
-			default = { r = 0.447, g = 0.137, b = 0.137 },
+			default = DEFAULT_HP_COLOR_START,
 		},
 		{
 			type = "colorpicker",
 			name = "HP Color Gradient End",
-			getFunc = function() return unpack(SETTINGS.HP_COLOR_END) end,	--(alpha is optional)
+			getFunc = function() return unpack(SETTINGS.HpColorEnd) end,	--(alpha is optional)
 			setFunc = function(r,g,b,a)
-				SETTINGS.HP_COLOR_END = { r,g,b }
+				SETTINGS.HpColorEnd = { r,g,b }
 				RefreshAllBosses(true)
 			end,
 			width = "half",
-			default = { r = 0.596, g = 0.129, b = 0.129 },
+			default = DEFAULT_HP_COLOR_END,
 		},
     })
 end
@@ -607,13 +613,12 @@ function ABB_Initialize(topLevelCtrl)
         if addonName == NAME then
 
             SETTINGS = ZO_SavedVars:NewAccountWide("AltBossBarSavedVariables", SV_VER, nil, {
-				REPLACE_COMPASS = true,
-                SHOW_DEFAULTS = false,
-                NOTIFY_BEFORE_PERCENT = 2,
-				SCALE_HP_PROPORTIONAL = false,
-				-- equal to ZO_POWER_BAR_GRADIENT_COLORS[COMBAT_MECHANIC_FLAGS_HEALTH]
-				HP_COLOR_START = { r = 0.447, g = 0.137, b = 0.137 },
-				HP_COLOR_END = { r = 0.596, g = 0.129, b = 0.129 },
+				ReplaceCompass = true,
+                ShowDefaults = false,
+                NotifyBeforePercent = 2,
+				ScaleHpProportional = false,
+				HpColorStart = DEFAULT_HP_COLOR_START,
+				HpColorEnd = DEFAULT_HP_COLOR_END,
             })
 
             InitializeAddonMenu()
@@ -623,12 +628,7 @@ function ABB_Initialize(topLevelCtrl)
             HUD_SCENE:AddFragment(fragment)
             HUD_UI_SCENE:AddFragment(fragment)
 
-			if SETTINGS.REPLACE_COMPASS then
-				VERTICAL_OFFSET = 0
-			else
-				VERTICAL_OFFSET = ZO_CompassFrame:GetHeight()
-			end
-			
+			SetVerticalOffset()
             InitBars(topLevelCtrl)
             topLevelCtrl:RegisterForEvent(EVENT_BOSSES_CHANGED, function(_, forceReset) RefreshAllBosses(forceReset) end)
             topLevelCtrl:RegisterForEvent(EVENT_PLAYER_ACTIVATED, function() RefreshAllBosses() end)
