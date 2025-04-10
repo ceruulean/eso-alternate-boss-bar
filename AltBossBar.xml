@@ -64,7 +64,10 @@
                     </Controls>
                 </Control>
 
-				<Texture name="$(parent)BgRight" inherits="ZO_TargetAttributeBgRightAngle_Keyboard_Template" />
+				<Texture name="$(parent)BgRight" inherits="ZO_TargetAttributeBgRightAngle_Keyboard_Template">
+					<Dimensions y="30" />
+					<Anchor point="LEFT" relativeTo="$(parent)BgCenter" relativePoint="RIGHT" offsetX="-2" offsetY="-1" />
+				</Texture>
 				
 				<Texture name="$(parent)BgCenter" textureFile="$(COMPASS_PATH)compass.dds">
 					<TextureCoords left="0.78125" right="1" top="0" bottom="0.609375" />
@@ -90,7 +93,7 @@
                 </Texture>
 
                 <Texture name="$(parent)BracketRight" textureFile="EsoUI/Art/UnitFrames/targetUnitFrame_bracket_level4_right.dds">
-                    <Anchor point="LEFT" relativeTo="$(parent)BgCenter" relativePoint="RIGHT" offsetX="-7" offsetY="-5"/>
+                    <Anchor point="LEFT" relativeTo="$(parent)BgCenter" relativePoint="RIGHT" offsetX="-9" offsetY="0"/>
                     <TextureCoords left="0" right="1" top="0" bottom="1" />
                 </Texture>
             </Controls>
@@ -210,11 +213,11 @@
 				<Texture name="$(parent)FrameRight" inherits="ZO_TargetAttributeFrameRightAngle" level="1">
 				</Texture>
 				
-				<Texture name="$(parent)BracketLeft">
+				<Texture name="$(parent)BracketLeft" hidden="true">
                     <Dimensions x="64" y="64"/>
                 </Texture>
 
-                <Texture name="$(parent)BracketRight" tier="MEDIUM" level="3">
+                <Texture name="$(parent)BracketRight" tier="MEDIUM" level="3" hidden="true">
                     <Dimensions x="256" y="64" />
                     <Anchor point="TOPLEFT" relativeTo="$(parent)BgCenter" relativePoint="TOPRIGHT" offsetX="-26" offsetY="-20"/>
                     <Controls>

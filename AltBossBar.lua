@@ -7,6 +7,8 @@ local SETTINGS
 local ICONSIZE = ZO_COMPASS_FRAME_HEIGHT_KEYBOARD-8
 local ABB_TEMPLATE_NAME = "ABB_BossBar_Asym"
 
+local THEME_OFFSET = 0
+
 local OVERSHIELD_COLOR_START = ZO_ColorDef:New("392952")
 local OVERSHIELD_COLOR_END = ZO_ColorDef:New("968498")
 local UNWAVERING_COLOR_START = ZO_ColorDef:New("7D7750")
@@ -230,7 +232,7 @@ local function getBossPercentagesByName(name)
 end
 
 local function getWidth()
-    return zo_clamp(GuiRoot:GetWidth() * .35 - 20, 400, 800)
+    return zo_clamp(GuiRoot:GetWidth() * .35 - THEME_OFFSET, 400, 800)
 end
 
 local PercentLineManager = ZO_ControlPool:Subclass()
@@ -263,6 +265,8 @@ function ABB_BossBar:Initialize(bossTag, topLevelCtrl, previousBar)
     self.bossPercentages = nil
     self.hasShield = false
     self.hasImmunity = false
+	self.bracketLeft = self.control:GetNamedChild("BracketLeft")
+	self.bracketRight = self.control:GetNamedChild("BracketRight")
 	self.scaleX = 1.0
 
     self:ResetColors()
@@ -404,6 +408,10 @@ function ABB_BossBar:ApplyAnchors()
         self.control:SetAnchor(TOPLEFT, self.previousBar.control, BOTTOMLEFT)
 	else
         self.control:SetAnchor(TOPLEFT, self.parent, BOTTOMLEFT, 0, VERTICAL_OFFSET)
+		if self.bracketLeft ~= nil then
+			self.bracketLeft:SetHidden(false)
+			self.bracketRight:SetHidden(false)
+		end
     end
 end
 
@@ -466,18 +474,16 @@ local function ScaleBossBars()
 		for i = 1, MAX_BOSSES do
 			local bossTag = "boss"..i
 			local _, maxHealth = GetUnitPower(bossTag, POWERTYPE_HEALTH)
-			table.insert(bossOrder, { tag = bossTag, hp = maxHealth})
+			table.insert(bossOrder, { tag = bossTag, maxhp = maxHealth})
 			if maxHealth > highestHealthValue then
 				highestHealthValue = maxHealth
 			end
 		end
 
-		table.sort(bossOrder, function(a,b) return a.hp > b.hp end)
+		table.sort(bossOrder, function(a,b) return a.maxhp > b.maxhp end)
 		for i, val in ipairs(bossOrder) do
-			if DoesUnitExist(val.tag) then
-				bossBars[i].unitTag = val.tag
-				bossBars[i].scaleX = zo_clamp(val.hp / highestHealthValue, 0.3, 1.0)
-			end
+			bossBars[i].unitTag = val.tag
+			bossBars[i].scaleX = zo_clamp(val.maxhp / highestHealthValue, 0.3, 1.0)
 		end
 	else
 		for i = 1, MAX_BOSSES do
@@ -491,9 +497,8 @@ local function RefreshAllBosses(forceReset)
 
 	ScaleBossBars()
     for i = 1, MAX_BOSSES do
-        local bossTag = "boss"..i
 
-        if DoesUnitExist(bossTag) then
+        if DoesUnitExist(bossBars[i].unitTag) then
             bossBars[i]:Refresh(forceReset)
             bossBars[i]:Show()
         else
@@ -604,6 +609,18 @@ local function InitializeAddonMenu()
 			width = "half",
 			default = DEFAULT_HP_COLOR_END,
 		},
+		{
+            type = "checkbox",
+            name = "New theme xd",
+			tooltip = "Testing...",
+			requiresReload = true,
+            getFunc = function() return SETTINGS.Theme end,
+            setFunc = function(newValue)
+                SETTINGS.Theme = newValue
+                RefreshAllBosses()
+            end,
+			default = false,
+        },
     })
 end
 
@@ -619,6 +636,7 @@ function ABB_Initialize(topLevelCtrl)
 				ScaleHpProportional = false,
 				HpColorStart = DEFAULT_HP_COLOR_START,
 				HpColorEnd = DEFAULT_HP_COLOR_END,
+				Theme = false
             })
 
             InitializeAddonMenu()
@@ -629,6 +647,13 @@ function ABB_Initialize(topLevelCtrl)
             HUD_UI_SCENE:AddFragment(fragment)
 
 			SetVerticalOffset()
+			if SETTINGS.Theme then
+				ABB_TEMPLATE_NAME = "ABB_BossBar_Asym"
+				THEME_OFFSET = 20
+			else
+				ABB_TEMPLATE_NAME = "ABB_BossBar"
+				THEME_OFFSET = 0
+			end
             InitBars(topLevelCtrl)
             topLevelCtrl:RegisterForEvent(EVENT_BOSSES_CHANGED, function(_, forceReset) RefreshAllBosses(forceReset) end)
             topLevelCtrl:RegisterForEvent(EVENT_PLAYER_ACTIVATED, function() RefreshAllBosses() end)
