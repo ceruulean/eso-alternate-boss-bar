@@ -16,6 +16,7 @@ local HP_COLOR_END = ZO_ColorDef:New("982121")
 local OVERSHIELD_GRADIENT = { OVERSHIELD_COLOR_START, OVERSHIELD_COLOR_END }
 local UNWAVERING_GRADIENT = { UNWAVERING_COLOR_START, UNWAVERING_COLOR_END }
 local HP_GRADIENT = { HP_COLOR_START, HP_COLOR_END } -- equal to ZO_POWER_BAR_GRADIENT_COLORS[COMBAT_MECHANIC_FLAGS_HEALTH]
+-- local HP_GRADIENT = { ZO_ColorDef:New("99311c"), ZO_ColorDef:New("43ab2e") }
 
 local VERTICAL_OFFSET = 0
 local COMPASS_WIDTH = 0
@@ -261,7 +262,7 @@ function ABB_BossBar:Initialize(bossTag, topLevelCtrl, previousBar)
     self.bossPercentages = nil
     self.hasShield = false
     self.hasImmunity = false
-	self.sortValue = 0
+	self.sortValue = 1.0
 
     self:ResetColors()
 
@@ -396,7 +397,7 @@ function ABB_BossBar:ApplyAnchors()
         self.previousBar.nextBar = self
         self.control:SetAnchor(TOPLEFT, self.previousBar.control, BOTTOMLEFT)
 	else
-        self.control:SetAnchor(TOP, self.parent, BOTTOM, -30, VERTICAL_OFFSET)
+        self.control:SetAnchor(TOPLEFT, self.parent, BOTTOMLEFT, (getWidth() / -2), VERTICAL_OFFSET)
     end
 end
 
@@ -427,7 +428,7 @@ local function AttachTargetTo(control)
     local targetFrame = UNIT_FRAMES:GetFrame("reticleover")
     local targetControl = targetFrame.frame
     targetControl:ClearAnchors()
-    targetControl:SetAnchor(TOP, control, BOTTOM, 0, 5)
+    targetControl:SetAnchor(TOPLEFT, control, BOTTOMLEFT, 0, 5)
 end
 
 local bossBars = {}
@@ -437,48 +438,68 @@ local function InitBars(topLevelCtrl)
 
     for i = 1, MAX_BOSSES do
         local bossTag = "boss"..i
-        bossBars[bossTag] = ABB_BossBar:New(bossTag, topLevelCtrl, prevBossBar)
-        prevBossBar = bossBars[bossTag]
+        bossBars[i] = ABB_BossBar:New(bossTag, topLevelCtrl, prevBossBar)
+        prevBossBar = bossBars[i]
     end
+
 end
 
 local function RefreshAllBosses(forceReset)
     local lastBossBar
-	local highestHealthValue = 0
+	local highestHealthValue = 1
+	local bossOrder = {}
+
+	if SETTINGS.SCALE_HP_PROPORTIONAL then
+		for i = 1, MAX_BOSSES do
+			local bossTag = "boss"..i
+			local _, maxHealth = GetUnitPower(bossTag, POWERTYPE_HEALTH)
+			table.insert(bossOrder, { bossTag = bossTag, hp = maxHealth})
+			if maxHealth > highestHealthValue then
+				highestHealthValue = maxHealth
+			end
+		end
+		-- for i = 1, MAX_BOSSES do
+			-- local bossTag = "boss"..i
+			-- local _, maxHealth = GetUnitPower(bossBars[bossTag].unitTag, POWERTYPE_HEALTH)
+			-- local s = (maxHealth / highestHealthValue)
+			-- bossBars[bossTag].sortValue = s
+		-- end
 	
+	table.sort(bossOrder, function(a,b) return a.hp < b.hp end)
+	
+	for i, val in ipairs(bossOrder) do
+		if DoesUnitExist(val.bossTag) then
+			bossBars[i].unitTag = bossTag
+		end
+	end
+
+
+	-- lastBossBar = nil
+	-- for bossTag in pairs(bossBars) do
+		-- bossBars[bossTag].previousBar = lastBossBar
+		-- lastBossBar = bossBars[bossTag]
+	-- end
+	end
+
+	local barwidth = getWidth()
     for i = 1, MAX_BOSSES do
         local bossTag = "boss"..i
 
         if DoesUnitExist(bossTag) then
-            bossBars[bossTag]:Refresh(forceReset)
-            bossBars[bossTag]:Show()
-			local _, maxHealth = GetUnitPower(bossBars[bossTag].unitTag, POWERTYPE_HEALTH)
-			if maxHealth > highestHealthValue then
-				highestHealthValue = maxHealth
+            bossBars[i]:Refresh(forceReset)
+			if SETTINGS.SCALE_HP_PROPORTIONAL then
+				local _, maxHealth = GetUnitPower(bossTag, POWERTYPE_HEALTH)
+				bossBars[i].control:SetWidth(barwidth * maxHealth / highestHealthValue)
 			end
+            bossBars[i]:Show()
         else
-            bossBars[bossTag]:Hide()
+            bossBars[i]:Hide()
             do break end
         end
-
-        lastBossBar = bossBars[bossTag]
+		lastBossBar = bossBars[i]
     end
-	
-	for i = 1, MAX_BOSSES do
-        local bossTag = "boss"..i
-		local _, maxHealth = GetUnitPower(bossBars[bossTag].unitTag, POWERTYPE_HEALTH)
-		local s = (maxHealth / highestHealthValue)
-		bossBars[bossTag].sortValue = s
-		bossBars[bossTag].control:SetWidth(getWidth() * s)
-    end
-	
-	table.sort(bossBars, function(a,b) return a.sortValue < b.sortValue end)
-
-	lastBossBar = nil
-	for bossTag in pairs(bossBars) do
-		bossBars[bossTag].previousBar = lastBossBar
-		lastBossBar = bossBars[bossTag]
-	end
+		
+	--lastBossBar = bossBars[#bossBars]
 
     if lastBossBar ~= nil then
         COMPASS_FRAME_FRAGMENT:SetHiddenForReason("ABBar", SETTINGS.REPLACE_COMPASS)
@@ -514,7 +535,7 @@ local function InitializeAddonMenu()
     LAM2:RegisterOptionControls("ABB_Settings", {
 	    {
             type = "checkbox",
-            name = "Replace compass (must /reloadui)",
+            name = "Replace compass",
             getFunc = function() return SETTINGS.REPLACE_COMPASS end,
             setFunc = function(newValue)
                 SETTINGS.REPLACE_COMPASS = newValue
@@ -542,6 +563,15 @@ local function InitializeAddonMenu()
                 RefreshAllBosses()
             end,
         },
+		{
+            type = "checkbox",
+            name = "Scale HP bars proportional to highest HP boss",
+            getFunc = function() return SETTINGS.SCALE_HP_PROPORTIONAL end,
+            setFunc = function(newValue)
+                SETTINGS.SCALE_HP_PROPORTIONAL = newValue
+                RefreshAllBosses()
+            end,
+        },
     })
 end
 
@@ -554,6 +584,7 @@ function ABB_Initialize(topLevelCtrl)
 				REPLACE_COMPASS = true,
                 SHOW_DEFAULTS = false,
                 NOTIFY_BEFORE_PERCENT = 2,
+				SCALE_HP_PROPORTIONAL = false,
             })
 
             InitializeAddonMenu()
