@@ -10,13 +10,9 @@ local OVERSHIELD_COLOR_START = ZO_ColorDef:New("392952")
 local OVERSHIELD_COLOR_END = ZO_ColorDef:New("968498")
 local UNWAVERING_COLOR_START = ZO_ColorDef:New("7D7750")
 local UNWAVERING_COLOR_END = ZO_ColorDef:New("DDDDCB")
-local HP_COLOR_START = ZO_ColorDef:New("722323")
-local HP_COLOR_END = ZO_ColorDef:New("982121")
 
 local OVERSHIELD_GRADIENT = { OVERSHIELD_COLOR_START, OVERSHIELD_COLOR_END }
 local UNWAVERING_GRADIENT = { UNWAVERING_COLOR_START, UNWAVERING_COLOR_END }
-local HP_GRADIENT = { HP_COLOR_START, HP_COLOR_END } -- equal to ZO_POWER_BAR_GRADIENT_COLORS[COMBAT_MECHANIC_FLAGS_HEALTH]
--- local HP_GRADIENT = { ZO_ColorDef:New("99311c"), ZO_ColorDef:New("43ab2e") }
 
 local VERTICAL_OFFSET = 0
 local COMPASS_WIDTH = 0
@@ -262,7 +258,7 @@ function ABB_BossBar:Initialize(bossTag, topLevelCtrl, previousBar)
     self.bossPercentages = nil
     self.hasShield = false
     self.hasImmunity = false
-	self.sortValue = 1.0
+	self.scaleLength = 1.0
 
     self:ResetColors()
 
@@ -297,8 +293,11 @@ end
 function ABB_BossBar:Refresh(force)
     if force then
         self:ApplyStyle()
+		self:ResetColors()
     end
     local bossName = GetUnitName(self.unitTag)
+	local health, maxHealth = GetUnitPower(self.unitTag, POWERTYPE_HEALTH)
+	self.control:SetWidth(getWidth() * self.scaleLength)
     self.bossPercentages = getBossPercentagesByName(bossName)
     self.percentLinePool:ReleaseAllObjects()
     if self.bossPercentages ~= nil then
@@ -307,7 +306,6 @@ function ABB_BossBar:Refresh(force)
         end
     end
     self.nameText:SetText(bossName)
-    local health, maxHealth = GetUnitPower(self.unitTag, POWERTYPE_HEALTH)
     self:OnPowerUpdate(health, maxHealth, force)
 end
 
@@ -387,8 +385,9 @@ function ABB_BossBar:OnUavRemoval(unitAttributeVisual)
 end
 
 function ABB_BossBar:ResetColors()
-    ZO_StatusBar_SetGradientColor(self.healthBar, HP_GRADIENT)
-    self.healthLeftBgBar:SetColor(HP_COLOR_START:UnpackRGBA())
+	local gradient = {ZO_ColorDef:New(unpack(SETTINGS.HP_COLOR_START) ), ZO_ColorDef:New(unpack(SETTINGS.HP_COLOR_END))}
+    ZO_StatusBar_SetGradientColor(self.healthBar, gradient)
+    self.healthLeftBgBar:SetColor(gradient[1]:UnpackRGBA())
 end
 
 function ABB_BossBar:ApplyAnchors()
@@ -453,7 +452,7 @@ local function RefreshAllBosses(forceReset)
 		for i = 1, MAX_BOSSES do
 			local bossTag = "boss"..i
 			local _, maxHealth = GetUnitPower(bossTag, POWERTYPE_HEALTH)
-			table.insert(bossOrder, { bossTag = bossTag, hp = maxHealth})
+			table.insert(bossOrder, { tag = bossTag, hp = maxHealth})
 			if maxHealth > highestHealthValue then
 				highestHealthValue = maxHealth
 			end
@@ -465,11 +464,11 @@ local function RefreshAllBosses(forceReset)
 			-- bossBars[bossTag].sortValue = s
 		-- end
 	
-	table.sort(bossOrder, function(a,b) return a.hp < b.hp end)
-	
+	table.sort(bossOrder, function(a,b) return a.hp > b.hp end)
 	for i, val in ipairs(bossOrder) do
-		if DoesUnitExist(val.bossTag) then
-			bossBars[i].unitTag = bossTag
+		if DoesUnitExist(val.tag) then
+			bossBars[i].unitTag = val.tag
+			bossBars[i].scaleLength = val.hp / highestHealthValue
 		end
 	end
 
@@ -487,10 +486,6 @@ local function RefreshAllBosses(forceReset)
 
         if DoesUnitExist(bossTag) then
             bossBars[i]:Refresh(forceReset)
-			if SETTINGS.SCALE_HP_PROPORTIONAL then
-				local _, maxHealth = GetUnitPower(bossTag, POWERTYPE_HEALTH)
-				bossBars[i].control:SetWidth(barwidth * maxHealth / highestHealthValue)
-			end
             bossBars[i]:Show()
         else
             bossBars[i]:Hide()
@@ -530,17 +525,21 @@ local function InitializeAddonMenu()
         author = "|c943810BulDeZir|r",
         version = string.format('|c00FF00%s|r', 1),
         registerForRefresh = true,
+		registerForDefaults = true,
     })
 
     LAM2:RegisterOptionControls("ABB_Settings", {
 	    {
             type = "checkbox",
             name = "Replace compass",
+			requiresReload = true,
+			tooltip = "If disabled, bars will show under the compass instead of replacing it.",
             getFunc = function() return SETTINGS.REPLACE_COMPASS end,
             setFunc = function(newValue)
                 SETTINGS.REPLACE_COMPASS = newValue
                 RefreshAllBosses()
             end,
+			default = true,
         },
         {
             type = "checkbox",
@@ -550,6 +549,7 @@ local function InitializeAddonMenu()
                 SETTINGS.SHOW_DEFAULTS = newValue
                 RefreshAllBosses()
             end,
+			default = false,
         },
         {
             type = "slider",
@@ -562,16 +562,42 @@ local function InitializeAddonMenu()
                 SETTINGS.NOTIFY_BEFORE_PERCENT = zo_round(newValue)
                 RefreshAllBosses()
             end,
+			default = 2,
         },
 		{
             type = "checkbox",
-            name = "Scale HP bars proportional to highest HP boss",
+            name = "Proportional Bars",
+			requiresReload = true,
+			tooltip = "Bosses with less max HP have shorter bars, and bars are sorted from greatest to least.",
             getFunc = function() return SETTINGS.SCALE_HP_PROPORTIONAL end,
             setFunc = function(newValue)
                 SETTINGS.SCALE_HP_PROPORTIONAL = newValue
                 RefreshAllBosses()
             end,
+			default = false,
         },
+		{
+			type = "colorpicker",
+			name = "HP Color Gradient Start",
+			getFunc = function() return unpack(SETTINGS.HP_COLOR_START) end,	--(alpha is optional)
+			setFunc = function(r,g,b,a)
+				SETTINGS.HP_COLOR_START = { r,g,b }
+				RefreshAllBosses(true)
+			end,
+			width = "half",
+			default = { r = 0.447, g = 0.137, b = 0.137 },
+		},
+		{
+			type = "colorpicker",
+			name = "HP Color Gradient End",
+			getFunc = function() return unpack(SETTINGS.HP_COLOR_END) end,	--(alpha is optional)
+			setFunc = function(r,g,b,a)
+				SETTINGS.HP_COLOR_END = { r,g,b }
+				RefreshAllBosses(true)
+			end,
+			width = "half",
+			default = { r = 0.596, g = 0.129, b = 0.129 },
+		},
     })
 end
 
@@ -585,6 +611,9 @@ function ABB_Initialize(topLevelCtrl)
                 SHOW_DEFAULTS = false,
                 NOTIFY_BEFORE_PERCENT = 2,
 				SCALE_HP_PROPORTIONAL = false,
+				-- equal to ZO_POWER_BAR_GRADIENT_COLORS[COMBAT_MECHANIC_FLAGS_HEALTH]
+				HP_COLOR_START = { r = 0.447, g = 0.137, b = 0.137 },
+				HP_COLOR_END = { r = 0.596, g = 0.129, b = 0.129 },
             })
 
             InitializeAddonMenu()

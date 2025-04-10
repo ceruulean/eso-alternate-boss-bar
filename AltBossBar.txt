@@ -7,7 +7,7 @@
 ## APIVersion: 101041
 ## Title: Alternative Boss Bar
 ## Author: |c943810BulDeZir|r
-## Version: 1.0
+## Version: 3.0
 ## SavedVariables: AltBossBarSavedVariables
 ## DependsOn: LibAddonMenu-2.0
 
