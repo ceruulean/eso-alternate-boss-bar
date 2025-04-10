@@ -1,6 +1,6 @@
 
 local NAME = 'AltBossBar'
-local SV_VER = 2
+local SV_VER = 3
 
 local SETTINGS
 
@@ -11,11 +11,14 @@ local OVERSHIELD_COLOR_END = ZO_ColorDef:New("968498")
 local UNWAVERING_COLOR_START = ZO_ColorDef:New("7D7750")
 local UNWAVERING_COLOR_END = ZO_ColorDef:New("DDDDCB")
 local HP_COLOR_START = ZO_ColorDef:New("722323")
-local HP_COLOR_END = ZO_ColorDef:New("DA3030")
+local HP_COLOR_END = ZO_ColorDef:New("982121")
 
 local OVERSHIELD_GRADIENT = { OVERSHIELD_COLOR_START, OVERSHIELD_COLOR_END }
 local UNWAVERING_GRADIENT = { UNWAVERING_COLOR_START, UNWAVERING_COLOR_END }
 local HP_GRADIENT = { HP_COLOR_START, HP_COLOR_END } -- equal to ZO_POWER_BAR_GRADIENT_COLORS[COMBAT_MECHANIC_FLAGS_HEALTH]
+
+local VERTICAL_OFFSET = 0
+local COMPASS_WIDTH = 0
 
 local StupidBossNamesInsteadOfId = {
     -- TRIALS --
@@ -258,6 +261,7 @@ function ABB_BossBar:Initialize(bossTag, topLevelCtrl, previousBar)
     self.bossPercentages = nil
     self.hasShield = false
     self.hasImmunity = false
+	self.sortValue = 0
 
     self:ResetColors()
 
@@ -390,9 +394,9 @@ function ABB_BossBar:ApplyAnchors()
     self.control:ClearAnchors()
     if self.previousBar ~= nil then
         self.previousBar.nextBar = self
-        self.control:SetAnchor(TOP, self.previousBar.control, BOTTOM)
-    else
-        self.control:SetAnchor(TOP, self.parent, BOTTOM)
+        self.control:SetAnchor(TOPLEFT, self.previousBar.control, BOTTOMLEFT)
+	else
+        self.control:SetAnchor(TOP, self.parent, BOTTOM, -30, VERTICAL_OFFSET)
     end
 end
 
@@ -430,6 +434,7 @@ local bossBars = {}
 
 local function InitBars(topLevelCtrl)
     local prevBossBar
+
     for i = 1, MAX_BOSSES do
         local bossTag = "boss"..i
         bossBars[bossTag] = ABB_BossBar:New(bossTag, topLevelCtrl, prevBossBar)
@@ -439,13 +444,18 @@ end
 
 local function RefreshAllBosses(forceReset)
     local lastBossBar
-
+	local highestHealthValue = 0
+	
     for i = 1, MAX_BOSSES do
         local bossTag = "boss"..i
 
         if DoesUnitExist(bossTag) then
             bossBars[bossTag]:Refresh(forceReset)
             bossBars[bossTag]:Show()
+			local _, maxHealth = GetUnitPower(bossBars[bossTag].unitTag, POWERTYPE_HEALTH)
+			if maxHealth > highestHealthValue then
+				highestHealthValue = maxHealth
+			end
         else
             bossBars[bossTag]:Hide()
             do break end
@@ -453,9 +463,25 @@ local function RefreshAllBosses(forceReset)
 
         lastBossBar = bossBars[bossTag]
     end
+	
+	for i = 1, MAX_BOSSES do
+        local bossTag = "boss"..i
+		local _, maxHealth = GetUnitPower(bossBars[bossTag].unitTag, POWERTYPE_HEALTH)
+		local s = (maxHealth / highestHealthValue)
+		bossBars[bossTag].sortValue = s
+		bossBars[bossTag].control:SetWidth(getWidth() * s)
+    end
+	
+	table.sort(bossBars, function(a,b) return a.sortValue < b.sortValue end)
+
+	lastBossBar = nil
+	for bossTag in pairs(bossBars) do
+		bossBars[bossTag].previousBar = lastBossBar
+		lastBossBar = bossBars[bossTag]
+	end
 
     if lastBossBar ~= nil then
-        COMPASS_FRAME_FRAGMENT:SetHiddenForReason("ABBar", true)
+        COMPASS_FRAME_FRAGMENT:SetHiddenForReason("ABBar", SETTINGS.REPLACE_COMPASS)
         AttachTargetTo(lastBossBar.control)
     else
         COMPASS_FRAME_FRAGMENT:SetHiddenForReason("ABBar", false)
@@ -486,6 +512,15 @@ local function InitializeAddonMenu()
     })
 
     LAM2:RegisterOptionControls("ABB_Settings", {
+	    {
+            type = "checkbox",
+            name = "Replace compass (must /reloadui)",
+            getFunc = function() return SETTINGS.REPLACE_COMPASS end,
+            setFunc = function(newValue)
+                SETTINGS.REPLACE_COMPASS = newValue
+                RefreshAllBosses()
+            end,
+        },
         {
             type = "checkbox",
             name = "Show Default Percent Lines (75%, 50%, 25%)",
@@ -516,6 +551,7 @@ function ABB_Initialize(topLevelCtrl)
         if addonName == NAME then
 
             SETTINGS = ZO_SavedVars:NewAccountWide("AltBossBarSavedVariables", SV_VER, nil, {
+				REPLACE_COMPASS = true,
                 SHOW_DEFAULTS = false,
                 NOTIFY_BEFORE_PERCENT = 2,
             })
@@ -527,6 +563,12 @@ function ABB_Initialize(topLevelCtrl)
             HUD_SCENE:AddFragment(fragment)
             HUD_UI_SCENE:AddFragment(fragment)
 
+			if SETTINGS.REPLACE_COMPASS then
+				VERTICAL_OFFSET = 0
+			else
+				VERTICAL_OFFSET = ZO_CompassFrame:GetHeight()
+			end
+			
             InitBars(topLevelCtrl)
             topLevelCtrl:RegisterForEvent(EVENT_BOSSES_CHANGED, function(_, forceReset) RefreshAllBosses(forceReset) end)
             topLevelCtrl:RegisterForEvent(EVENT_PLAYER_ACTIVATED, function() RefreshAllBosses() end)
