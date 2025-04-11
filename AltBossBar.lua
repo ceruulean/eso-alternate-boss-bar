@@ -269,26 +269,37 @@ function ABB_BossBar:Initialize(bossTag, topLevelCtrl, previousBar)
 	self.bracketRight = self.control:GetNamedChild("BracketRight")
 	self.scaleX = 1.0
 
-    self:ResetColors()
-
     local function PowerUpdateHandlerFunction(unitTag, powerPoolIndex, powerType, powerPool, powerPoolMax)
-        self:OnPowerUpdate(powerPool, powerPoolMax, false)
+        self:OnPowerUpdate(unitTag, powerPool, powerPoolMax, false)
     end
     local powerUpdateEventHandler = ZO_MostRecentPowerUpdateHandler:New("BossBar"..bossTag, PowerUpdateHandlerFunction)
     powerUpdateEventHandler:AddFilterForEvent(REGISTER_FILTER_POWER_TYPE, POWERTYPE_HEALTH)
-    powerUpdateEventHandler:AddFilterForEvent(REGISTER_FILTER_UNIT_TAG, bossTag)
+    powerUpdateEventHandler:AddFilterForEvent(REGISTER_FILTER_UNIT_TAG_PREFIX, "boss")
+	
+	self:RegisterUnit(bossTag)
     self.control:RegisterForEvent(EVENT_PLAYER_ACTIVATED, function() self:UpdateWidth() end)
     self.control:RegisterForEvent(EVENT_SCREEN_RESIZED, function() self:UpdateWidth() end)
+	
+	self:ResetColors()
+    self:ApplyStyle()
+    self:ApplyAnchors()
+end
 
+function ABB_BossBar:RegisterUnit(unitTag)
+	self:UnregisterUnit()
+	self.unitTag = unitTag
     self.control:RegisterForEvent(EVENT_UNIT_ATTRIBUTE_VISUAL_ADDED, function(eventCode, unitTag, ...) self:OnUavUpdate(...) end)
     self.control:AddFilterForEvent(EVENT_UNIT_ATTRIBUTE_VISUAL_ADDED, REGISTER_FILTER_UNIT_TAG, self.unitTag)
     self.control:RegisterForEvent(EVENT_UNIT_ATTRIBUTE_VISUAL_UPDATED, function(eventCode, unitTag, ...) self:OnUavUpdate(...) end)
     self.control:AddFilterForEvent(EVENT_UNIT_ATTRIBUTE_VISUAL_UPDATED, REGISTER_FILTER_UNIT_TAG, self.unitTag)
     self.control:RegisterForEvent(EVENT_UNIT_ATTRIBUTE_VISUAL_REMOVED, function(eventCode, unitTag, ...) self:OnUavRemoval(...) end)
     self.control:AddFilterForEvent(EVENT_UNIT_ATTRIBUTE_VISUAL_REMOVED, REGISTER_FILTER_UNIT_TAG, self.unitTag)
+end
 
-    self:ApplyStyle()
-    self:ApplyAnchors()
+function ABB_BossBar:UnregisterUnit()
+    self.control:UnregisterForEvent(EVENT_UNIT_ATTRIBUTE_VISUAL_ADDED)
+    self.control:UnregisterForEvent(EVENT_UNIT_ATTRIBUTE_VISUAL_UPDATED)
+    self.control:UnregisterForEvent(EVENT_UNIT_ATTRIBUTE_VISUAL_REMOVED)
 end
 
 function ABB_BossBar:CreateLine(percent)
@@ -317,7 +328,7 @@ function ABB_BossBar:Refresh(force)
         end
     end
     self.nameText:SetText(bossName)
-    self:OnPowerUpdate(health, maxHealth, force)
+    self:OnPowerUpdate(self.unitTag, health, maxHealth, force)
 end
 
 function ABB_BossBar:FormatPercent(health, maxHealth)
@@ -342,7 +353,10 @@ function ABB_BossBar:FormatPercent(health, maxHealth)
     return percentText..'%'
 end
 
-function ABB_BossBar:OnPowerUpdate(health, maxHealth, force)
+function ABB_BossBar:OnPowerUpdate(sourceUnit, health, maxHealth, force)
+	if sourceUnit ~= self.unitTag then
+		return
+	end
     ZO_StatusBar_SmoothTransition(self.healthBar, health, maxHealth, force)
     self.healthLeftBgBar:SetValue((health > 0 and 1 or 0))
 
@@ -482,8 +496,8 @@ local function ScaleBossBars()
 
 		table.sort(bossOrder, function(a,b) return a.maxhp > b.maxhp end)
 		for i, val in ipairs(bossOrder) do
-			bossBars[i].unitTag = val.tag
-			bossBars[i].scaleX = zo_clamp(val.maxhp / highestHealthValue, 0.3, 1.0)
+			bossBars[i]:RegisterUnit(val.tag)
+			bossBars[i].scaleX = zo_clamp(val.maxhp / highestHealthValue, 0.4, 1.0)
 		end
 	else
 		for i = 1, MAX_BOSSES do
@@ -534,7 +548,7 @@ local function InitializeAddonMenu()
         type = "panel",
         name = "Alternative Boss Bars",
         displayName = "Alternative Boss Bars",
-        author = "|c943810BulDeZir|r",
+        author = "|c943810BulDeZir|r, ceruulean",
         version = string.format('|c00FF00%s|r', 3),
         registerForRefresh = true,
 		registerForDefaults = true,
