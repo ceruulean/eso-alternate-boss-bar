@@ -6,6 +6,8 @@ local SETTINGS
 
 local ICONSIZE = ZO_COMPASS_FRAME_HEIGHT_KEYBOARD-8
 local ABB_TEMPLATE_NAME = "ABB_BossBar_Asym"
+local FN_ABB_GET_WIDTH = nil
+local DISTANCE_FROM_CENTER = 0
 
 local THEME_OFFSET = 0
 
@@ -20,9 +22,6 @@ local UNWAVERING_GRADIENT = { UNWAVERING_COLOR_START, UNWAVERING_COLOR_END }
 -- equal to ZO_POWER_BAR_GRADIENT_COLORS[COMBAT_MECHANIC_FLAGS_HEALTH]
 local DEFAULT_HP_COLOR_START = { r = 0.447, g = 0.137, b = 0.137 }
 local DEFAULT_HP_COLOR_END = { r = 0.855, g = 0.188, b = 0.188 }
-
-local VERTICAL_OFFSET = 0
-local COMPASS_WIDTH = 0
 
 local StupidBossNamesInsteadOfId = {
     -- TRIALS --
@@ -232,7 +231,8 @@ local function getBossPercentagesByName(name)
 end
 
 local function getWidth()
-    return zo_clamp(GuiRoot:GetWidth() * .35 - THEME_OFFSET, 400, 800)
+	if FN_ABB_GET_WIDTH ~= nil then return zo_clamp(FN_ABB_GET_WIDTH(), 400, 800) end
+    return zo_clamp(GuiRoot:GetWidth() * .35, 400, 800)
 end
 
 local PercentLineManager = ZO_ControlPool:Subclass()
@@ -421,7 +421,7 @@ function ABB_BossBar:ApplyAnchors()
         self.previousBar.nextBar = self
         self.control:SetAnchor(TOPLEFT, self.previousBar.control, BOTTOMLEFT)
 	else
-        self.control:SetAnchor(TOPLEFT, self.parent, BOTTOMLEFT, 0, VERTICAL_OFFSET)
+        self.control:SetAnchor(TOPLEFT, self.parent, TOPLEFT, 0, 0)
 		if self.bracketLeft ~= nil then
 			self.bracketLeft:SetHidden(false)
 			self.bracketRight:SetHidden(false)
@@ -440,6 +440,7 @@ end
 
 function ABB_BossBar:Show()
     self.control:SetHidden(false)
+	self.control:SetAlpha(1)
 end
 
 function ABB_BossBar:Hide()
@@ -452,11 +453,31 @@ function ABB_BossBar:Hide()
     end
 end
 
-local function AttachTargetTo(control)
+local transitioning = false
+
+function fadeAnimation(control, startVal, endVal, duration)
+	if transitioning then return end
+	transitioning = true
+	local animation, timeline = CreateSimpleAnimation(ANIMATION_ALPHA, control)
+ 
+	-- start at current alpha
+	animation:SetAlphaValues(startVal, endVal)
+	animation:SetDuration(duration or 1000)
+ 
+	timeline:SetPlaybackType(ANIMATION_PLAYBACK_ONE_SHOT)
+	timeline:PlayFromStart()
+	zo_callLater(function() transitioning = false end, duration or 1000)
+end
+
+local function AttachTargetTo(control, forceAlign)
     local targetFrame = UNIT_FRAMES:GetFrame("reticleover")
     local targetControl = targetFrame.frame
     targetControl:ClearAnchors()
-    targetControl:SetAnchor(TOPLEFT, control, BOTTOMLEFT, 0, 5)
+	if forceAlign then
+		targetControl:SetAnchor(TOP, control, BOTTOM, DISTANCE_FROM_CENTER, 0)
+	else
+		targetControl:SetAnchor(TOP, control, BOTTOM, 0, 0)
+	end
 end
 
 local bossBars = {}
@@ -470,14 +491,6 @@ local function InitBars(topLevelCtrl)
         prevBossBar = bossBars[i]
     end
 
-end
-
-local function SetVerticalOffset()
-	if SETTINGS.ReplaceCompass then
-		VERTICAL_OFFSET = 0
-	else
-		VERTICAL_OFFSET = ZO_CompassFrame:GetHeight()
-	end
 end
 
 local function ScaleBossBars()
@@ -507,7 +520,8 @@ local function ScaleBossBars()
 end
 
 local function RefreshAllBosses(forceReset)
-    local lastBossBar	
+	local abbContainer = GetControl("ABB_Container")
+    local lastBossBar
 
 	ScaleBossBars()
     for i = 1, MAX_BOSSES do
@@ -521,10 +535,11 @@ local function RefreshAllBosses(forceReset)
         end
 		lastBossBar = bossBars[i]
     end
-
+	
     if lastBossBar ~= nil then
         COMPASS_FRAME_FRAGMENT:SetHiddenForReason("ABBar", SETTINGS.ReplaceCompass)
-        AttachTargetTo(lastBossBar.control)
+		DISTANCE_FROM_CENTER = ((ZO_CompassFrame:GetWidth() - lastBossBar.control:GetWidth()) / 2)
+        AttachTargetTo(lastBossBar.control, true)
     else
         COMPASS_FRAME_FRAGMENT:SetHiddenForReason("ABBar", false)
         AttachTargetTo(ZO_CompassFrame)
@@ -537,6 +552,25 @@ function ABB_FakeGloss:New()
 end
 function ABB_FakeGloss:SetMinMax() end
 function ABB_FakeGloss:SetValue() end
+
+local THEMES = {
+    ["Plain"] = {
+        template = "ABB_BossBar",
+        calcWidth = function() return GuiRoot:GetWidth() * 0.35 end
+    },
+    ["Embellished"] = {
+        template = "ABB_BossBar_Asym",
+        calcWidth = function() return GuiRoot:GetWidth() * 0.35 - 20 end
+    }
+}
+
+local function SetVisualSettings()
+	local offset = SETTINGS.ReplaceCompass and 0 or ZO_CompassFrame:GetHeight()
+	local container = GetControl("ABB_Container")
+	container:SetAnchor(TOPLEFT, ZO_CompassFrame, TOPLEFT, 0, offset)
+	ABB_TEMPLATE_NAME = THEMES[SETTINGS.ThemeName or "Plain"].template
+	FN_ABB_GET_WIDTH = THEMES[SETTINGS.ThemeName or "Plain"].calcWidth
+end
 
 -------------------------------------
 --Settings Menu--
@@ -562,7 +596,7 @@ local function InitializeAddonMenu()
             getFunc = function() return SETTINGS.ReplaceCompass end,
             setFunc = function(newValue)
                 SETTINGS.ReplaceCompass = newValue
-				SetVerticalOffset()
+				SetVisualSettings()
                 RefreshAllBosses(true)
             end,
 			default = true,
@@ -624,17 +658,18 @@ local function InitializeAddonMenu()
 			default = DEFAULT_HP_COLOR_END,
 		},
 		{
-            type = "checkbox",
-            name = "New theme xd",
+			type = "dropdown",
+			name = "New theme xd",
 			tooltip = "Testing...",
 			requiresReload = true,
-            getFunc = function() return SETTINGS.Theme end,
-            setFunc = function(newValue)
-                SETTINGS.Theme = newValue
-                RefreshAllBosses()
-            end,
-			default = false,
-        },
+			choices = {"Plain", "Embellished"},
+			getFunc = function() return SETTINGS.ThemeName end,
+			setFunc = function(newValue)
+				SETTINGS.ThemeName = newValue
+				RefreshAllBosses()
+			end,
+			default = "Plain"
+		},
     })
 end
 
@@ -650,7 +685,7 @@ function ABB_Initialize(topLevelCtrl)
 				ScaleHpProportional = false,
 				HpColorStart = DEFAULT_HP_COLOR_START,
 				HpColorEnd = DEFAULT_HP_COLOR_END,
-				Theme = false
+				ThemeName = "Plain"
             })
 
             InitializeAddonMenu()
@@ -660,17 +695,11 @@ function ABB_Initialize(topLevelCtrl)
             HUD_SCENE:AddFragment(fragment)
             HUD_UI_SCENE:AddFragment(fragment)
 
-			SetVerticalOffset()
-			if SETTINGS.Theme then
-				ABB_TEMPLATE_NAME = "ABB_BossBar_Asym"
-				THEME_OFFSET = 20
-			else
-				ABB_TEMPLATE_NAME = "ABB_BossBar"
-				THEME_OFFSET = 0
-			end
+			SetVisualSettings()
+
             InitBars(topLevelCtrl)
             topLevelCtrl:RegisterForEvent(EVENT_BOSSES_CHANGED, function(_, forceReset) RefreshAllBosses(forceReset) end)
-            topLevelCtrl:RegisterForEvent(EVENT_PLAYER_ACTIVATED, function() RefreshAllBosses() end)
+            -- topLevelCtrl:RegisterForEvent(EVENT_PLAYER_ACTIVATED, function() RefreshAllBosses() end)
             topLevelCtrl:RegisterForEvent(EVENT_GAMEPAD_PREFERRED_MODE_CHANGED, function() RefreshAllBosses(true) end)
 
             EVENT_MANAGER:UnregisterForEvent(NAME, EVENT_ADD_ON_LOADED)

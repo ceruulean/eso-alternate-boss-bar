@@ -93,7 +93,7 @@
                 </Texture>
 
                 <Texture name="$(parent)BracketRight" textureFile="EsoUI/Art/UnitFrames/targetUnitFrame_bracket_level4_right.dds">
-                    <Anchor point="LEFT" relativeTo="$(parent)BgCenter" relativePoint="RIGHT" offsetX="-7" offsetY="0"/>
+                    <Anchor point="LEFT" relativeTo="$(parent)BgCenter" relativePoint="RIGHT" offsetX="-6" offsetY="0"/>
                     <TextureCoords left="0" right="1" top="0" bottom="1" />
                 </Texture>
             </Controls>
@@ -217,14 +217,15 @@
                     <Dimensions x="64" y="64"/>
                 </Texture>
 
-                <Texture name="$(parent)BracketRight" tier="MEDIUM" level="3" hidden="true">
-                    <Dimensions x="256" y="64" />
-                    <Anchor point="TOPLEFT" relativeTo="$(parent)BgCenter" relativePoint="TOPRIGHT" offsetX="-26" offsetY="-20"/>
+                <Texture name="$(parent)BracketRight" tier="MEDIUM" hidden="true">
+                    <Dimensions x="256" y="74" />
+                    <Anchor point="TOPLEFT" relativeTo="$(parent)BgCenter" relativePoint="TOPRIGHT"/>
                     <Controls>
                         <Texture name="$(parent)Underlay" tier="LOW" textureFile="EsoUI/Art/UnitFrames/targetUnitFrame_glowUnderlay_level4_right.dds" inherits="ZO_DifficultyBracketGlow">
+							<Dimensions y="74" />
                             <Anchor point="RIGHT"/>
                         </Texture>
-                        <Texture name="$(parent)Glow" inherits="ZO_DifficultyBracketGlow">
+                        <Texture name="$(parent)Glow" textureFile="EsoUI/Art/UnitFrames/targetUnitFrame_glowOverlay_level4_right.dds" inherits="ZO_DifficultyBracketGlow">
                             <Anchor point="LEFT"/>
                         </Texture>
                     </Controls>
@@ -232,7 +233,7 @@
             </Controls>
         </Control>
 
-        <TopLevelControl name="ABB_Container">
+        <TopLevelControl name="ABB_Container" resizeToFitDescendents="true">
             <Anchor point="TOPLEFT" relativeTo="ZO_CompassFrame" relativePoint="TOPLEFT" offsetX="0" offsetY="0"/>
             <OnInitialized>
                 ABB_Initialize(self)
