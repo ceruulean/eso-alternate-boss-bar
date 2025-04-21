@@ -2,9 +2,12 @@
     <Controls>
 
         <Line name="ABB_HP_Line_Template" thickness="2" level="501" tier="1" virtual="true">
-            <OnInitialized>
+			<OnInitialized>
                 self:SetColor(1, 1, 1, 0.7)
             </OnInitialized>
+        </Line>
+
+        <Line name="ABB_HP_Line_Grunge_Template" thickness="6" level="501" tier="1" virtual="true" textureFile="esoui/art/quest/questjournal_divider.dds" blendMode="COLOR_DODGE">
         </Line>
 
         <Control name="ABB_BossBar_Keyboard_Template" virtual="true">
@@ -82,11 +85,15 @@
 					<Dimensions y="30" />
 				</Texture>
 				
-				<Texture name="$(parent)FrameRight" inherits="ZO_TargetAttributeFrameRightAngle_Keyboard_Template">
-				    <Dimensions y="30" />
-					<Anchor point="LEFT" relativeTo="$(parent)BgCenter" relativePoint="RIGHT" offsetY="-1" />
+				<Texture name="$(parent)NotchCenter" textureFile="esoui/art/worldmap/mapnav_downarrow_up.dds" tier="1" level="501">
+				    <Dimensions x="21" y="21" />
+					<Anchor point="TOP" relativeTo="$(parent)BgCenter" relativePoint="TOP" offsetY="-5"/>
 				</Texture>
 				
+				<Texture name="$(parent)FrameRight" textureFile="AltBossBar/abb_frame_right.dds" tier="1">
+					<Dimensions x="32" y="32"/>
+					<Anchor point="LEFT" relativeTo="$(parent)BgCenter" relativePoint="RIGHT" offsetY="0"/>
+				</Texture>
 				<Texture name="$(parent)BracketLeft" textureFile="EsoUI/Art/BossBar/bossBar_bracket_left.dds">
                     <Anchor point="RIGHT" relativeTo="$(parent)BgCenter" relativePoint="LEFT" offsetX="8"/>
                     <TextureCoords left="0" right="1" top="0" bottom="1" />
@@ -210,7 +217,9 @@
 					<Anchor point="LEFT" relativeTo="$(parent)BgCenter" relativePoint="LEFT" />
 				</Texture>
 				
-				<Texture name="$(parent)FrameRight" inherits="ZO_TargetAttributeFrameRightAngle" level="1">
+				<Texture name="$(parent)NotchCenter" />
+				
+				<Texture name="$(parent)FrameRight">
 				</Texture>
 				
 				<Texture name="$(parent)BracketLeft" hidden="true">
@@ -218,15 +227,15 @@
                 </Texture>
 
                 <Texture name="$(parent)BracketRight" tier="MEDIUM" hidden="true">
-                    <Dimensions x="256" y="74" />
+                    <Dimensions x="256" y="64" />
                     <Anchor point="TOPLEFT" relativeTo="$(parent)BgCenter" relativePoint="TOPRIGHT"/>
                     <Controls>
                         <Texture name="$(parent)Underlay" tier="LOW" textureFile="EsoUI/Art/UnitFrames/targetUnitFrame_glowUnderlay_level4_right.dds" inherits="ZO_DifficultyBracketGlow">
 							<Dimensions y="74" />
-                            <Anchor point="RIGHT"/>
+                            <Anchor point="RIGHT" offsetY="-1.5" />
                         </Texture>
                         <Texture name="$(parent)Glow" textureFile="EsoUI/Art/UnitFrames/targetUnitFrame_glowOverlay_level4_right.dds" inherits="ZO_DifficultyBracketGlow">
-                            <Anchor point="LEFT"/>
+							<Anchor point="LEFT"/>
                         </Texture>
                     </Controls>
                 </Texture>
