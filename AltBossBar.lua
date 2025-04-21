@@ -23,6 +23,19 @@ local UNWAVERING_GRADIENT = { UNWAVERING_COLOR_START, UNWAVERING_COLOR_END }
 local DEFAULT_HP_COLOR_START = { r = 0.447, g = 0.137, b = 0.137 }
 local DEFAULT_HP_COLOR_END = { r = 0.855, g = 0.188, b = 0.188 }
 
+local THEMES = {
+    ["Plain"] = {
+        template = "ABB_BossBar",
+		lineTemplate = "ABB_HP_Line_Template",
+        calcWidth = function() return GuiRoot:GetWidth() * 0.35 end
+    },
+    ["Embellished"] = {
+        template = "ABB_BossBar_Asym",
+		lineTemplate = "ABB_HP_Line_Grunge_Template",
+        calcWidth = function() return GuiRoot:GetWidth() * 0.35 - 20 end
+    }
+}
+
 local StupidBossNamesInsteadOfId = {
     -- TRIALS --
     -- Hel Ra Citadel
@@ -237,7 +250,7 @@ end
 
 local PercentLineManager = ZO_ControlPool:Subclass()
 function PercentLineManager:New(parent, ...)
-    local obj = ZO_ControlPool.New(self, "ABB_HP_Line_Template", parent, "ABB_HP_Line")
+    local obj = ZO_ControlPool.New(self, THEMES[SETTINGS.ThemeName].lineTemplate, parent, "ABB_HP_Line")
     --obj:Initialize( ... )
     return obj
 end
@@ -305,7 +318,11 @@ end
 function ABB_BossBar:CreateLine(percent)
     local line = self.percentLinePool:AcquireObject()
     local x = (self.healthBar:GetWidth() / 100) * percent
-    x = x - 9 -- mod for better simmetry cause of healthLeftBgBar
+	if SETTINGS.ThemeName == "Embellished" then
+	    x = x - 8.5
+	else
+	    x = x - 9 -- mod for better simmetry cause of healthLeftBgBar
+	end
     line:SetAnchor(TOPLEFT, self.healthBar, TOPLEFT, x, 0)
     line:SetAnchor(BOTTOMRIGHT, self.healthBar, TOPLEFT,  x, -0 + self.healthBar:GetHeight())
 end
@@ -419,7 +436,7 @@ function ABB_BossBar:ApplyAnchors()
     self.control:ClearAnchors()
     if self.previousBar ~= nil then
         self.previousBar.nextBar = self
-        self.control:SetAnchor(TOPLEFT, self.previousBar.control, BOTTOMLEFT)
+        self.control:SetAnchor(TOP, self.previousBar.control, BOTTOM)
 	else
         self.control:SetAnchor(TOPLEFT, self.parent, TOPLEFT, 0, 0)
 		if self.bracketLeft ~= nil then
@@ -552,17 +569,6 @@ function ABB_FakeGloss:New()
 end
 function ABB_FakeGloss:SetMinMax() end
 function ABB_FakeGloss:SetValue() end
-
-local THEMES = {
-    ["Plain"] = {
-        template = "ABB_BossBar",
-        calcWidth = function() return GuiRoot:GetWidth() * 0.35 end
-    },
-    ["Embellished"] = {
-        template = "ABB_BossBar_Asym",
-        calcWidth = function() return GuiRoot:GetWidth() * 0.35 - 20 end
-    }
-}
 
 local function SetVisualSettings()
 	local offset = SETTINGS.ReplaceCompass and 0 or ZO_CompassFrame:GetHeight()
