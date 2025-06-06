@@ -5,9 +5,8 @@ local SV_VER = 3
 local SETTINGS
 
 local ICONSIZE = ZO_COMPASS_FRAME_HEIGHT_KEYBOARD-8
-local ABB_TEMPLATE_NAME = "ABB_BossBar_Asym"
+local ABB_TEMPLATE_NAME = "ABB_BossBar_Emb"
 local FN_ABB_GET_WIDTH = nil
-local DISTANCE_FROM_CENTER = 0
 
 local THEME_OFFSET = 0
 
@@ -30,7 +29,7 @@ local THEMES = {
         calcWidth = function() return GuiRoot:GetWidth() * 0.35 end
     },
     ["Embellished"] = {
-        template = "ABB_BossBar_Asym",
+        template = "ABB_BossBar_Emb",
 		lineTemplate = "ABB_HP_Line_Grunge_Template",
         calcWidth = function() return GuiRoot:GetWidth() * 0.35 - 20 end
     }
@@ -232,13 +231,23 @@ local StupidBossNamesInsteadOfId = {
     ["Shattered Champion"] = { 70, 50 },
     ["Darkshard"] = { 80, 60, 40 },
     ["The Blind"] = { 81, 61, 41, 21 },
+
+	-- U45 Exiled Redoubt
+    ["Executioner Jerensi"] = { 80, 50, 30 },
+    ["Prime Sorcerer Vandorallen"] = { 90, 66, 45 },
+    ["Squall of Retribution"] = { 95, 88, 80, 70, 65, 55, 50, 45, 32, 22, 16, 5 },
+
+	-- U45 Lep Seclusa
+    ["Garvin the Tracker"] = { 80, 50, 40 },
+    ["Noriwen"] = { 70, 50, 20 },
+    ["Orpheon the Tactician"] = { 80, 50, 30 },
 }
 
 local function getBossPercentagesByName(name)
     if StupidBossNamesInsteadOfId[name] ~= nil then
         return StupidBossNamesInsteadOfId[name]
     end
-    if SETTINGS.ShowDefaults then
+    if SETTINGS.SHOW_DEFAULTS then
         return { 75, 50, 25 } -- default Percentages
     end
 end
@@ -250,7 +259,7 @@ end
 
 local PercentLineManager = ZO_ControlPool:Subclass()
 function PercentLineManager:New(parent, ...)
-    local obj = ZO_ControlPool.New(self, THEMES[SETTINGS.ThemeName].lineTemplate, parent, "ABB_HP_Line")
+    local obj = ZO_ControlPool.New(self, THEMES[SETTINGS.THEME_NAME].lineTemplate, parent, "ABB_HP_Line")
     --obj:Initialize( ... )
     return obj
 end
@@ -318,7 +327,7 @@ end
 function ABB_BossBar:CreateLine(percent)
     local line = self.percentLinePool:AcquireObject()
     local x = (self.healthBar:GetWidth() / 100) * percent
-	if SETTINGS.ThemeName == "Embellished" then
+	if SETTINGS.THEME_NAME == "Embellished" then
 	    x = x - 8.5
 	else
 	    x = x - 9 -- mod for better simmetry cause of healthLeftBgBar
@@ -362,7 +371,7 @@ function ABB_BossBar:FormatPercent(health, maxHealth)
     end
     if self.bossPercentages ~= nil then
         for i = 1, #self.bossPercentages do
-            if (percent >= self.bossPercentages[i] and percent <= self.bossPercentages[i] + SETTINGS.NotifyBeforePercent) then
+            if (percent >= self.bossPercentages[i] and percent <= self.bossPercentages[i] + SETTINGS.NOTIFY_BEFORE_PERCENT) then
                 return zo_iconFormat("esoui/art/interaction/questnewavailable.dds", ICONSIZE-8, ICONSIZE-8)..percentText..'%'
             end
         end
@@ -427,7 +436,7 @@ function ABB_BossBar:OnUavRemoval(unitAttributeVisual)
 end
 
 function ABB_BossBar:ResetColors()
-	local gradient = {ZO_ColorDef:New(unpack(SETTINGS.HpColorStart) ), ZO_ColorDef:New(unpack(SETTINGS.HpColorEnd))}
+	local gradient = {ZO_ColorDef:New(unpack(SETTINGS.HP_COLOR_START) ), ZO_ColorDef:New(unpack(SETTINGS.HP_COLOR_END))}
     ZO_StatusBar_SetGradientColor(self.healthBar, gradient)
     self.healthLeftBgBar:SetColor(gradient[1]:UnpackRGBA())
 end
@@ -486,15 +495,11 @@ function fadeAnimation(control, startVal, endVal, duration)
 	zo_callLater(function() transitioning = false end, duration or 1000)
 end
 
-local function AttachTargetTo(control, forceAlign)
+local function AttachTargetTo(control)
     local targetFrame = UNIT_FRAMES:GetFrame("reticleover")
     local targetControl = targetFrame.frame
     targetControl:ClearAnchors()
-	if forceAlign then
-		targetControl:SetAnchor(TOP, control, BOTTOM, DISTANCE_FROM_CENTER, 0)
-	else
-		targetControl:SetAnchor(TOP, control, BOTTOM, 0, 0)
-	end
+	targetControl:SetAnchor(TOP, control, BOTTOM, 0, 0)
 end
 
 local bossBars = {}
@@ -514,7 +519,7 @@ local function ScaleBossBars()
 	local highestHealthValue = 1
 	local bossOrder = {}
 	
-	if SETTINGS.ScaleHpProportional then
+	if SETTINGS.SCALE_HP_PROPORTION then
 		for i = 1, MAX_BOSSES do
 			local bossTag = "boss"..i
 			local _, maxHealth = GetUnitPower(bossTag, POWERTYPE_HEALTH)
@@ -554,11 +559,10 @@ local function RefreshAllBosses(forceReset)
     end
 	
     if lastBossBar ~= nil then
-        COMPASS_FRAME_FRAGMENT:SetHiddenForReason("ABBar", SETTINGS.ReplaceCompass)
-		DISTANCE_FROM_CENTER = ((ZO_CompassFrame:GetWidth() - lastBossBar.control:GetWidth()) / 2)
-        AttachTargetTo(lastBossBar.control, true)
+        COMPASS_FRAME_FRAGMENT:SetHiddenForReason("ABBar", SETTINGS.REPLACE_COMPASS)
+        AttachTargetTo(lastBossBar.control)
     else
-        COMPASS_FRAME_FRAGMENT:SetHiddenForReason("ABBar", false)
+        COMPASS_FRAME_FRAGMENT:SetHiddenForReason("ABBar")
         AttachTargetTo(ZO_CompassFrame)
     end
 end
@@ -571,11 +575,11 @@ function ABB_FakeGloss:SetMinMax() end
 function ABB_FakeGloss:SetValue() end
 
 local function SetVisualSettings()
-	local offset = SETTINGS.ReplaceCompass and 0 or ZO_CompassFrame:GetHeight()
+	local offset = SETTINGS.REPLACE_COMPASS and 0 or ZO_CompassFrame:GetHeight()
 	local container = GetControl("ABB_Container")
 	container:SetAnchor(TOPLEFT, ZO_CompassFrame, TOPLEFT, 0, offset)
-	ABB_TEMPLATE_NAME = THEMES[SETTINGS.ThemeName or "Plain"].template
-	FN_ABB_GET_WIDTH = THEMES[SETTINGS.ThemeName or "Plain"].calcWidth
+	ABB_TEMPLATE_NAME = THEMES[SETTINGS.THEME_NAME or "Plain"].template
+	FN_ABB_GET_WIDTH = THEMES[SETTINGS.THEME_NAME or "Plain"].calcWidth
 end
 
 -------------------------------------
@@ -598,10 +602,10 @@ local function InitializeAddonMenu()
 	    {
             type = "checkbox",
             name = "Replace compass",
-			tooltip = "If disabled, bars will show under the compass instead of replacing it.",
-            getFunc = function() return SETTINGS.ReplaceCompass end,
+			tooltip = "If turned off, HP bars will show under the compass instead of replacing it.",
+            getFunc = function() return SETTINGS.REPLACE_COMPASS end,
             setFunc = function(newValue)
-                SETTINGS.ReplaceCompass = newValue
+                SETTINGS.REPLACE_COMPASS = newValue
 				SetVisualSettings()
                 RefreshAllBosses(true)
             end,
@@ -610,9 +614,9 @@ local function InitializeAddonMenu()
         {
             type = "checkbox",
             name = "Show Default Percent Lines (75%, 50%, 25%)",
-            getFunc = function() return SETTINGS.ShowDefaults end,
+            getFunc = function() return SETTINGS.SHOW_DEFAULTS end,
             setFunc = function(newValue)
-                SETTINGS.ShowDefaults = newValue
+                SETTINGS.SHOW_DEFAULTS = newValue
                 RefreshAllBosses()
             end,
 			default = false,
@@ -623,9 +627,9 @@ local function InitializeAddonMenu()
             min = 0,
             max = 5,
             step = 1,
-            getFunc = function() return SETTINGS.NotifyBeforePercent end,
+            getFunc = function() return SETTINGS.NOTIFY_BEFORE_PERCENT end,
             setFunc = function(newValue)
-                SETTINGS.NotifyBeforePercent = zo_round(newValue)
+                SETTINGS.NOTIFY_BEFORE_PERCENT = zo_round(newValue)
                 RefreshAllBosses()
             end,
 			default = 2,
@@ -633,10 +637,10 @@ local function InitializeAddonMenu()
 		{
             type = "checkbox",
             name = "Proportional Bars",
-			tooltip = "Bosses with less max HP have shorter bars, and bars are sorted from greatest to least.",
-            getFunc = function() return SETTINGS.ScaleHpProportional end,
+			tooltip = "Bosses with less max HP have shorter bars, and bars are sorted from most to least HP.",
+            getFunc = function() return SETTINGS.SCALE_HP_PROPORTION end,
             setFunc = function(newValue)
-                SETTINGS.ScaleHpProportional = newValue
+                SETTINGS.SCALE_HP_PROPORTION = newValue
                 RefreshAllBosses(true)
             end,
 			default = false,
@@ -644,9 +648,9 @@ local function InitializeAddonMenu()
 		{
 			type = "colorpicker",
 			name = "HP Color Gradient Start",
-			getFunc = function() return unpack(SETTINGS.HpColorStart) end,	--(alpha is optional)
+			getFunc = function() return unpack(SETTINGS.HP_COLOR_START) end,	--(alpha is optional)
 			setFunc = function(r,g,b,a)
-				SETTINGS.HpColorStart = { r,g,b }
+				SETTINGS.HP_COLOR_START = { r,g,b }
 				RefreshAllBosses(true)
 			end,
 			width = "half",
@@ -655,9 +659,9 @@ local function InitializeAddonMenu()
 		{
 			type = "colorpicker",
 			name = "HP Color Gradient End",
-			getFunc = function() return unpack(SETTINGS.HpColorEnd) end,	--(alpha is optional)
+			getFunc = function() return unpack(SETTINGS.HP_COLOR_END) end,	--(alpha is optional)
 			setFunc = function(r,g,b,a)
-				SETTINGS.HpColorEnd = { r,g,b }
+				SETTINGS.HP_COLOR_END = { r,g,b }
 				RefreshAllBosses(true)
 			end,
 			width = "half",
@@ -665,13 +669,12 @@ local function InitializeAddonMenu()
 		},
 		{
 			type = "dropdown",
-			name = "New theme xd",
-			tooltip = "Testing...",
+			name = "Theme",
 			requiresReload = true,
 			choices = {"Plain", "Embellished"},
-			getFunc = function() return SETTINGS.ThemeName end,
+			getFunc = function() return SETTINGS.THEME_NAME end,
 			setFunc = function(newValue)
-				SETTINGS.ThemeName = newValue
+				SETTINGS.THEME_NAME = newValue
 				RefreshAllBosses()
 			end,
 			default = "Plain"
@@ -685,13 +688,13 @@ function ABB_Initialize(topLevelCtrl)
         if addonName == NAME then
 
             SETTINGS = ZO_SavedVars:NewAccountWide("AltBossBarSavedVariables", SV_VER, nil, {
-				ReplaceCompass = true,
-                ShowDefaults = false,
-                NotifyBeforePercent = 2,
-				ScaleHpProportional = false,
-				HpColorStart = DEFAULT_HP_COLOR_START,
-				HpColorEnd = DEFAULT_HP_COLOR_END,
-				ThemeName = "Plain"
+				REPLACE_COMPASS = true,
+                SHOW_DEFAULTS = false,
+                NOTIFY_BEFORE_PERCENT = 2,
+				SCALE_HP_PROPORTION = false,
+				HP_COLOR_START = DEFAULT_HP_COLOR_START,
+				HP_COLOR_END = DEFAULT_HP_COLOR_END,
+				THEME_NAME = "Plain"
             })
 
             InitializeAddonMenu()

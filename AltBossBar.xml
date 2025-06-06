@@ -46,9 +46,9 @@
         </Control>
 
         <Control name="ABB_BossBar_Gamepad_Template" inherits="ABB_BossBar_Keyboard_Template" virtual="true"/>
-        <Control name="ABB_BossBar_Asym_Gamepad_Template" inherits="ABB_BossBar_Asym_Keyboard_Template" virtual="true"/>
+        <Control name="ABB_BossBar_Emb_Gamepad_Template" inherits="ABB_BossBar_Emb_Keyboard_Template" virtual="true"/>
 
-        <Control name="ABB_BossBar_Asym_Keyboard_Template" virtual="true">
+        <Control name="ABB_BossBar_Emb_Keyboard_Template" virtual="true">
             <Dimensions x="500" y="ZO_COMPASS_FRAME_HEIGHT_KEYBOARD"/>
             <Controls>
                 <Control name="$(parent)Health">
@@ -161,7 +161,7 @@
             </Controls>
         </Control>
 
-        <Control name="ABB_BossBar_Asym" virtual="true">
+        <Control name="ABB_BossBar_Emb" virtual="true">
             <Controls>
                 <Control name="$(parent)Health" inherits="ZO_PlayerAttributeContainer">
                     <Controls>
