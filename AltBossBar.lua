@@ -1,21 +1,39 @@
 
 local NAME = 'AltBossBar'
-local SV_VER = 2
+local SV_VER = 3
 
 local SETTINGS
 
 local ICONSIZE = ZO_COMPASS_FRAME_HEIGHT_KEYBOARD-8
+local ABB_TEMPLATE_NAME = "ABB_BossBar_Emb"
+local FN_ABB_GET_WIDTH = nil
+
+local THEME_OFFSET = 0
 
 local OVERSHIELD_COLOR_START = ZO_ColorDef:New("392952")
 local OVERSHIELD_COLOR_END = ZO_ColorDef:New("968498")
 local UNWAVERING_COLOR_START = ZO_ColorDef:New("7D7750")
 local UNWAVERING_COLOR_END = ZO_ColorDef:New("DDDDCB")
-local HP_COLOR_START = ZO_ColorDef:New("722323")
-local HP_COLOR_END = ZO_ColorDef:New("DA3030")
 
 local OVERSHIELD_GRADIENT = { OVERSHIELD_COLOR_START, OVERSHIELD_COLOR_END }
 local UNWAVERING_GRADIENT = { UNWAVERING_COLOR_START, UNWAVERING_COLOR_END }
-local HP_GRADIENT = { HP_COLOR_START, HP_COLOR_END } -- equal to ZO_POWER_BAR_GRADIENT_COLORS[COMBAT_MECHANIC_FLAGS_HEALTH]
+
+-- equal to ZO_POWER_BAR_GRADIENT_COLORS[COMBAT_MECHANIC_FLAGS_HEALTH]
+local DEFAULT_HP_COLOR_START = { r = 0.447, g = 0.137, b = 0.137 }
+local DEFAULT_HP_COLOR_END = { r = 0.855, g = 0.188, b = 0.188 }
+
+local THEMES = {
+    ["Plain"] = {
+        template = "ABB_BossBar",
+        lineTemplate = "ABB_HP_Line_Template",
+        calcWidth = function() return GuiRoot:GetWidth() * 0.35 end
+    },
+    ["Embellished"] = {
+        template = "ABB_BossBar_Emb",
+        lineTemplate = "ABB_HP_Line_Grunge_Template",
+        calcWidth = function() return GuiRoot:GetWidth() * 0.35 - 20 end
+    }
+}
 
 local StupidBossNamesInsteadOfId = {
     -- TRIALS --
@@ -213,6 +231,16 @@ local StupidBossNamesInsteadOfId = {
     ["Shattered Champion"] = { 70, 50 },
     ["Darkshard"] = { 80, 60, 40 },
     ["The Blind"] = { 81, 61, 41, 21 },
+
+    -- U45 Exiled Redoubt
+    ["Executioner Jerensi"] = { 80, 50, 30 },
+    ["Prime Sorcerer Vandorallen"] = { 90, 66, 45 },
+    ["Squall of Retribution"] = { 95, 88, 80, 70, 65, 55, 50, 45, 32, 22, 16, 5 },
+
+    -- U45 Lep Seclusa
+    ["Garvin the Tracker"] = { 80, 50, 40 },
+    ["Noriwen"] = { 70, 50, 20 },
+    ["Orpheon the Tactician"] = { 80, 50, 30 },
 }
 
 local function getBossPercentagesByName(name)
@@ -225,12 +253,13 @@ local function getBossPercentagesByName(name)
 end
 
 local function getWidth()
+    if FN_ABB_GET_WIDTH ~= nil then return zo_clamp(FN_ABB_GET_WIDTH(), 400, 800) end
     return zo_clamp(GuiRoot:GetWidth() * .35, 400, 800)
 end
 
 local PercentLineManager = ZO_ControlPool:Subclass()
 function PercentLineManager:New(parent, ...)
-    local obj = ZO_ControlPool.New(self, "ABB_HP_Line_Template", parent, "ABB_HP_Line")
+    local obj = ZO_ControlPool.New(self, THEMES[SETTINGS.THEME_NAME].lineTemplate, parent, "ABB_HP_Line")
     --obj:Initialize( ... )
     return obj
 end
@@ -245,7 +274,7 @@ end
 function ABB_BossBar:Initialize(bossTag, topLevelCtrl, previousBar)
     self.unitTag = bossTag
     self.parent = topLevelCtrl
-    self.control = CreateControlFromVirtual("ABB_Frame"..bossTag, topLevelCtrl, "ABB_BossBar")
+    self.control = CreateControlFromVirtual("ABB_Frame"..bossTag, topLevelCtrl, ABB_TEMPLATE_NAME)
     self.control:SetHidden(true)
     local healthControl = GetControl(self.control, "Health")
     self.nameText = GetControl(healthControl, "Name")
@@ -258,33 +287,51 @@ function ABB_BossBar:Initialize(bossTag, topLevelCtrl, previousBar)
     self.bossPercentages = nil
     self.hasShield = false
     self.hasImmunity = false
-
-    self:ResetColors()
+    self.bracketLeft = self.control:GetNamedChild("BracketLeft")
+    self.bracketRight = self.control:GetNamedChild("BracketRight")
+    self.scaleX = 1.0
 
     local function PowerUpdateHandlerFunction(unitTag, powerPoolIndex, powerType, powerPool, powerPoolMax)
-        self:OnPowerUpdate(powerPool, powerPoolMax, false)
+        self:OnPowerUpdate(unitTag, powerPool, powerPoolMax, false)
     end
     local powerUpdateEventHandler = ZO_MostRecentPowerUpdateHandler:New("BossBar"..bossTag, PowerUpdateHandlerFunction)
     powerUpdateEventHandler:AddFilterForEvent(REGISTER_FILTER_POWER_TYPE, POWERTYPE_HEALTH)
-    powerUpdateEventHandler:AddFilterForEvent(REGISTER_FILTER_UNIT_TAG, bossTag)
+    powerUpdateEventHandler:AddFilterForEvent(REGISTER_FILTER_UNIT_TAG_PREFIX, "boss")
+    
+    self:RegisterUnit(bossTag)
     self.control:RegisterForEvent(EVENT_PLAYER_ACTIVATED, function() self:UpdateWidth() end)
     self.control:RegisterForEvent(EVENT_SCREEN_RESIZED, function() self:UpdateWidth() end)
+    
+    self:ResetColors()
+    self:ApplyStyle()
+    self:ApplyAnchors()
+end
 
+function ABB_BossBar:RegisterUnit(unitTag)
+    self:UnregisterUnit()
+    self.unitTag = unitTag
     self.control:RegisterForEvent(EVENT_UNIT_ATTRIBUTE_VISUAL_ADDED, function(eventCode, unitTag, ...) self:OnUavUpdate(...) end)
     self.control:AddFilterForEvent(EVENT_UNIT_ATTRIBUTE_VISUAL_ADDED, REGISTER_FILTER_UNIT_TAG, self.unitTag)
     self.control:RegisterForEvent(EVENT_UNIT_ATTRIBUTE_VISUAL_UPDATED, function(eventCode, unitTag, ...) self:OnUavUpdate(...) end)
     self.control:AddFilterForEvent(EVENT_UNIT_ATTRIBUTE_VISUAL_UPDATED, REGISTER_FILTER_UNIT_TAG, self.unitTag)
     self.control:RegisterForEvent(EVENT_UNIT_ATTRIBUTE_VISUAL_REMOVED, function(eventCode, unitTag, ...) self:OnUavRemoval(...) end)
     self.control:AddFilterForEvent(EVENT_UNIT_ATTRIBUTE_VISUAL_REMOVED, REGISTER_FILTER_UNIT_TAG, self.unitTag)
+end
 
-    self:ApplyStyle()
-    self:ApplyAnchors()
+function ABB_BossBar:UnregisterUnit()
+    self.control:UnregisterForEvent(EVENT_UNIT_ATTRIBUTE_VISUAL_ADDED)
+    self.control:UnregisterForEvent(EVENT_UNIT_ATTRIBUTE_VISUAL_UPDATED)
+    self.control:UnregisterForEvent(EVENT_UNIT_ATTRIBUTE_VISUAL_REMOVED)
 end
 
 function ABB_BossBar:CreateLine(percent)
     local line = self.percentLinePool:AcquireObject()
     local x = (self.healthBar:GetWidth() / 100) * percent
-    x = x - 9 -- mod for better simmetry cause of healthLeftBgBar
+    if SETTINGS.THEME_NAME == "Embellished" then
+        x = x - 8.5
+    else
+        x = x - 9 -- mod for better simmetry cause of healthLeftBgBar
+    end
     line:SetAnchor(TOPLEFT, self.healthBar, TOPLEFT, x, 0)
     line:SetAnchor(BOTTOMRIGHT, self.healthBar, TOPLEFT,  x, -0 + self.healthBar:GetHeight())
 end
@@ -292,8 +339,13 @@ end
 function ABB_BossBar:Refresh(force)
     if force then
         self:ApplyStyle()
+        self:ResetColors()
+        self:ApplyAnchors()
+    else
+        self:UpdateWidth()
     end
     local bossName = GetUnitName(self.unitTag)
+    local health, maxHealth = GetUnitPower(self.unitTag, POWERTYPE_HEALTH)
     self.bossPercentages = getBossPercentagesByName(bossName)
     self.percentLinePool:ReleaseAllObjects()
     if self.bossPercentages ~= nil then
@@ -302,8 +354,7 @@ function ABB_BossBar:Refresh(force)
         end
     end
     self.nameText:SetText(bossName)
-    local health, maxHealth = GetUnitPower(self.unitTag, POWERTYPE_HEALTH)
-    self:OnPowerUpdate(health, maxHealth, force)
+    self:OnPowerUpdate(self.unitTag, health, maxHealth, force)
 end
 
 function ABB_BossBar:FormatPercent(health, maxHealth)
@@ -328,7 +379,10 @@ function ABB_BossBar:FormatPercent(health, maxHealth)
     return percentText..'%'
 end
 
-function ABB_BossBar:OnPowerUpdate(health, maxHealth, force)
+function ABB_BossBar:OnPowerUpdate(sourceUnit, health, maxHealth, force)
+    if sourceUnit ~= self.unitTag then
+        return
+    end
     ZO_StatusBar_SmoothTransition(self.healthBar, health, maxHealth, force)
     self.healthLeftBgBar:SetValue((health > 0 and 1 or 0))
 
@@ -382,8 +436,9 @@ function ABB_BossBar:OnUavRemoval(unitAttributeVisual)
 end
 
 function ABB_BossBar:ResetColors()
-    ZO_StatusBar_SetGradientColor(self.healthBar, HP_GRADIENT)
-    self.healthLeftBgBar:SetColor(HP_COLOR_START:UnpackRGBA())
+    local gradient = {ZO_ColorDef:New(unpack(SETTINGS.HP_COLOR_START) ), ZO_ColorDef:New(unpack(SETTINGS.HP_COLOR_END))}
+    ZO_StatusBar_SetGradientColor(self.healthBar, gradient)
+    self.healthLeftBgBar:SetColor(gradient[1]:UnpackRGBA())
 end
 
 function ABB_BossBar:ApplyAnchors()
@@ -392,21 +447,26 @@ function ABB_BossBar:ApplyAnchors()
         self.previousBar.nextBar = self
         self.control:SetAnchor(TOP, self.previousBar.control, BOTTOM)
     else
-        self.control:SetAnchor(TOP, self.parent, BOTTOM)
+        self.control:SetAnchor(TOPLEFT, self.parent, TOPLEFT, 0, 0)
+        if self.bracketLeft ~= nil then
+            self.bracketLeft:SetHidden(false)
+            self.bracketRight:SetHidden(false)
+        end
     end
 end
 
 function ABB_BossBar:ApplyStyle()
-    ApplyTemplateToControl(self.control, ZO_GetPlatformTemplate("ABB_BossBar"))
+    ApplyTemplateToControl(self.control, ZO_GetPlatformTemplate(ABB_TEMPLATE_NAME))
     self:UpdateWidth()
 end
 
 function ABB_BossBar:UpdateWidth()
-    self.control:SetWidth(getWidth())
+    self.control:SetWidth(getWidth() * self.scaleX)
 end
 
 function ABB_BossBar:Show()
     self.control:SetHidden(false)
+    self.control:SetAlpha(1)
 end
 
 function ABB_BossBar:Hide()
@@ -419,46 +479,90 @@ function ABB_BossBar:Hide()
     end
 end
 
+local transitioning = false
+
+function fadeAnimation(control, startVal, endVal, duration)
+    if transitioning then return end
+    transitioning = true
+    local animation, timeline = CreateSimpleAnimation(ANIMATION_ALPHA, control)
+ 
+    -- start at current alpha
+    animation:SetAlphaValues(startVal, endVal)
+    animation:SetDuration(duration or 1000)
+ 
+    timeline:SetPlaybackType(ANIMATION_PLAYBACK_ONE_SHOT)
+    timeline:PlayFromStart()
+    zo_callLater(function() transitioning = false end, duration or 1000)
+end
+
 local function AttachTargetTo(control)
     local targetFrame = UNIT_FRAMES:GetFrame("reticleover")
     local targetControl = targetFrame.frame
     targetControl:ClearAnchors()
-    targetControl:SetAnchor(TOP, control, BOTTOM, 0, 5)
+    targetControl:SetAnchor(TOP, control, BOTTOM, 0, 0)
 end
 
 local bossBars = {}
 
 local function InitBars(topLevelCtrl)
     local prevBossBar
+
     for i = 1, MAX_BOSSES do
         local bossTag = "boss"..i
-        bossBars[bossTag] = ABB_BossBar:New(bossTag, topLevelCtrl, prevBossBar)
-        prevBossBar = bossBars[bossTag]
+        bossBars[i] = ABB_BossBar:New(bossTag, topLevelCtrl, prevBossBar)
+        prevBossBar = bossBars[i]
+    end
+
+end
+
+local function ScaleBossBars()
+    local highestHealthValue = 1
+    local bossOrder = {}
+    
+    if SETTINGS.SCALE_HP_PROPORTION then
+        for i = 1, MAX_BOSSES do
+            local bossTag = "boss"..i
+            local _, maxHealth = GetUnitPower(bossTag, POWERTYPE_HEALTH)
+            table.insert(bossOrder, { tag = bossTag, maxhp = maxHealth})
+            if maxHealth > highestHealthValue then
+                highestHealthValue = maxHealth
+            end
+        end
+
+        table.sort(bossOrder, function(a,b) return a.maxhp > b.maxhp end)
+        for i, val in ipairs(bossOrder) do
+            bossBars[i]:RegisterUnit(val.tag)
+            bossBars[i].scaleX = zo_clamp(val.maxhp / highestHealthValue, 0.4, 1.0)
+        end
+    else
+        for i = 1, MAX_BOSSES do
+            bossBars[i].scaleX = 1.0
+        end
     end
 end
 
 local function RefreshAllBosses(forceReset)
+    local abbContainer = GetControl("ABB_Container")
     local lastBossBar
 
+    ScaleBossBars()
     for i = 1, MAX_BOSSES do
-        local bossTag = "boss"..i
 
-        if DoesUnitExist(bossTag) then
-            bossBars[bossTag]:Refresh(forceReset)
-            bossBars[bossTag]:Show()
+        if DoesUnitExist(bossBars[i].unitTag) then
+            bossBars[i]:Refresh(forceReset)
+            bossBars[i]:Show()
         else
-            bossBars[bossTag]:Hide()
+            bossBars[i]:Hide()
             do break end
         end
-
-        lastBossBar = bossBars[bossTag]
+        lastBossBar = bossBars[i]
     end
-
+    
     if lastBossBar ~= nil then
-        COMPASS_FRAME_FRAGMENT:SetHiddenForReason("ABBar", true)
+        COMPASS_FRAME_FRAGMENT:SetHiddenForReason("ABBar", SETTINGS.REPLACE_COMPASS)
         AttachTargetTo(lastBossBar.control)
     else
-        COMPASS_FRAME_FRAGMENT:SetHiddenForReason("ABBar", false)
+        COMPASS_FRAME_FRAGMENT:SetHiddenForReason("ABBar")
         AttachTargetTo(ZO_CompassFrame)
     end
 end
@@ -469,6 +573,14 @@ function ABB_FakeGloss:New()
 end
 function ABB_FakeGloss:SetMinMax() end
 function ABB_FakeGloss:SetValue() end
+
+local function SetVisualSettings()
+    local offset = SETTINGS.REPLACE_COMPASS and 0 or ZO_CompassFrame:GetHeight()
+    local container = GetControl("ABB_Container")
+    container:SetAnchor(TOPLEFT, ZO_CompassFrame, TOPLEFT, 0, offset)
+    ABB_TEMPLATE_NAME = THEMES[SETTINGS.THEME_NAME or "Plain"].template
+    FN_ABB_GET_WIDTH = THEMES[SETTINGS.THEME_NAME or "Plain"].calcWidth
+end
 
 -------------------------------------
 --Settings Menu--
@@ -481,11 +593,24 @@ local function InitializeAddonMenu()
         name = "Alternative Boss Bars",
         displayName = "Alternative Boss Bars",
         author = "|c943810BulDeZir|r",
-        version = string.format('|c00FF00%s|r', 1),
+        version = string.format('|c00FF00%s|r', 3),
         registerForRefresh = true,
+        registerForDefaults = true,
     })
 
     LAM2:RegisterOptionControls("ABB_Settings", {
+        {
+            type = "checkbox",
+            name = "Replace compass",
+            tooltip = "If turned off, HP bars will show under the compass instead of replacing it.",
+            getFunc = function() return SETTINGS.REPLACE_COMPASS end,
+            setFunc = function(newValue)
+                SETTINGS.REPLACE_COMPASS = newValue
+                SetVisualSettings()
+                RefreshAllBosses(true)
+            end,
+            default = true,
+        },
         {
             type = "checkbox",
             name = "Show Default Percent Lines (75%, 50%, 25%)",
@@ -494,6 +619,7 @@ local function InitializeAddonMenu()
                 SETTINGS.SHOW_DEFAULTS = newValue
                 RefreshAllBosses()
             end,
+            default = false,
         },
         {
             type = "slider",
@@ -506,6 +632,52 @@ local function InitializeAddonMenu()
                 SETTINGS.NOTIFY_BEFORE_PERCENT = zo_round(newValue)
                 RefreshAllBosses()
             end,
+            default = 2,
+        },
+        {
+            type = "checkbox",
+            name = "Proportional Bars",
+            tooltip = "Bosses with less max HP have shorter bars, and bars are sorted from most to least HP.",
+            getFunc = function() return SETTINGS.SCALE_HP_PROPORTION end,
+            setFunc = function(newValue)
+                SETTINGS.SCALE_HP_PROPORTION = newValue
+                RefreshAllBosses(true)
+            end,
+            default = false,
+        },
+        {
+            type = "colorpicker",
+            name = "HP Color Gradient Start",
+            getFunc = function() return unpack(SETTINGS.HP_COLOR_START) end,    --(alpha is optional)
+            setFunc = function(r,g,b,a)
+                SETTINGS.HP_COLOR_START = { r,g,b }
+                RefreshAllBosses(true)
+            end,
+            width = "half",
+            default = DEFAULT_HP_COLOR_START,
+        },
+        {
+            type = "colorpicker",
+            name = "HP Color Gradient End",
+            getFunc = function() return unpack(SETTINGS.HP_COLOR_END) end,    --(alpha is optional)
+            setFunc = function(r,g,b,a)
+                SETTINGS.HP_COLOR_END = { r,g,b }
+                RefreshAllBosses(true)
+            end,
+            width = "half",
+            default = DEFAULT_HP_COLOR_END,
+        },
+        {
+            type = "dropdown",
+            name = "Theme",
+            requiresReload = true,
+            choices = {"Plain", "Embellished"},
+            getFunc = function() return SETTINGS.THEME_NAME end,
+            setFunc = function(newValue)
+                SETTINGS.THEME_NAME = newValue
+                RefreshAllBosses()
+            end,
+            default = "Plain"
         },
     })
 end
@@ -516,8 +688,13 @@ function ABB_Initialize(topLevelCtrl)
         if addonName == NAME then
 
             SETTINGS = ZO_SavedVars:NewAccountWide("AltBossBarSavedVariables", SV_VER, nil, {
+                REPLACE_COMPASS = true,
                 SHOW_DEFAULTS = false,
                 NOTIFY_BEFORE_PERCENT = 2,
+                SCALE_HP_PROPORTION = false,
+                HP_COLOR_START = DEFAULT_HP_COLOR_START,
+                HP_COLOR_END = DEFAULT_HP_COLOR_END,
+                THEME_NAME = "Plain"
             })
 
             InitializeAddonMenu()
@@ -527,9 +704,11 @@ function ABB_Initialize(topLevelCtrl)
             HUD_SCENE:AddFragment(fragment)
             HUD_UI_SCENE:AddFragment(fragment)
 
+            SetVisualSettings()
+
             InitBars(topLevelCtrl)
             topLevelCtrl:RegisterForEvent(EVENT_BOSSES_CHANGED, function(_, forceReset) RefreshAllBosses(forceReset) end)
-            topLevelCtrl:RegisterForEvent(EVENT_PLAYER_ACTIVATED, function() RefreshAllBosses() end)
+            -- topLevelCtrl:RegisterForEvent(EVENT_PLAYER_ACTIVATED, function() RefreshAllBosses() end)
             topLevelCtrl:RegisterForEvent(EVENT_GAMEPAD_PREFERRED_MODE_CHANGED, function() RefreshAllBosses(true) end)
 
             EVENT_MANAGER:UnregisterForEvent(NAME, EVENT_ADD_ON_LOADED)
