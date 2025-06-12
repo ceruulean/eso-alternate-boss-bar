@@ -19,8 +19,8 @@ local OVERSHIELD_GRADIENT = { OVERSHIELD_COLOR_START, OVERSHIELD_COLOR_END }
 local UNWAVERING_GRADIENT = { UNWAVERING_COLOR_START, UNWAVERING_COLOR_END }
 
 -- equal to ZO_POWER_BAR_GRADIENT_COLORS[COMBAT_MECHANIC_FLAGS_HEALTH]
-local DEFAULT_HP_COLOR_START = { r = 0.447, g = 0.137, b = 0.137 }
-local DEFAULT_HP_COLOR_END = { r = 0.855, g = 0.188, b = 0.188 }
+local DEFAULT_HP_COLOR_START = { 0.447, 0.137, 0.137 }
+local DEFAULT_HP_COLOR_END = { 0.855, 0.188, 0.188 }
 
 local THEMES = {
     ["Plain"] = {
@@ -479,27 +479,11 @@ function ABB_BossBar:Hide()
     end
 end
 
-local transitioning = false
-
-function fadeAnimation(control, startVal, endVal, duration)
-    if transitioning then return end
-    transitioning = true
-    local animation, timeline = CreateSimpleAnimation(ANIMATION_ALPHA, control)
- 
-    -- start at current alpha
-    animation:SetAlphaValues(startVal, endVal)
-    animation:SetDuration(duration or 1000)
- 
-    timeline:SetPlaybackType(ANIMATION_PLAYBACK_ONE_SHOT)
-    timeline:PlayFromStart()
-    zo_callLater(function() transitioning = false end, duration or 1000)
-end
-
 local function AttachTargetTo(control)
     local targetFrame = UNIT_FRAMES:GetFrame("reticleover")
     local targetControl = targetFrame.frame
     targetControl:ClearAnchors()
-    targetControl:SetAnchor(TOP, control, BOTTOM, 0, 0)
+    targetControl:SetAnchor(TOP, control, BOTTOM, 0, 5)
 end
 
 local bossBars = {}
