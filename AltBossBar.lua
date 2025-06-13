@@ -91,6 +91,9 @@ local StupidBossNamesInsteadOfId = {
     ["Exarchanic Yaseyla"] = { 90, 70, 60, 50, 35, 30, 20, 10 }, ["Exarchanikerin Yaseyla"] = { 90, 70, 60, 50, 35, 30, 20, 10 }, ["L’exarchanique Yaseyla"] = { 90, 70, 60, 50, 35, 30, 20, 10 }, ["Экзарханик Ясейла"] = { 90, 70, 60, 50, 35, 30, 20, 10 }, ["Exarcana Yaseyla"] = { 90, 70, 60, 50, 35, 30, 20, 10 }, ["エグザーカニック・ヤセイラ"] = { 90, 70, 60, 50, 35, 30, 20, 10 }, ["主教亚赛拉"] = { 90, 70, 60, 50, 35, 30, 20, 10 },
     ["Ansuul the Tormentor"] = { 90, 80, 70, 60, 50, 40, 30, 20 }, ["Ansuul die Quälende"] = { 90, 80, 70, 60, 50, 40, 30, 20 }, ["Ansuul la Tormentrice"] = { 90, 80, 70, 60, 50, 40, 30, 20 }, ["Ансул Истязательница"] = { 90, 80, 70, 60, 50, 40, 30, 20 }, ["Ansuul la Atormentadora"] = { 90, 80, 70, 60, 50, 40, 30, 20 }, ["拷問者アンスール"] = { 90, 80, 70, 60, 50, 40, 30, 20 }, ["折磨者安苏尔"] = { 90, 80, 70, 60, 50, 40, 30, 20 },
 
+    -- U42 Lucent Citadel
+    ["Orphic Shattered Shard"] = { 90, 60, 40, 20 }, ["orphische Splitterscherbe"] = { 90, 60, 40, 20 }, ["fragment brisé orphique"] = { 90, 60, 40, 20 },  ["Таинственный осколочник"] = { 90, 60, 40, 20 }, ["fragmento destrozado órfico"] = { 90, 60, 40, 20 }, ["オーフィックの砕けた欠片"] = { 90, 60, 40, 20 }, ["神秘破裂碎片"] = { 90, 60, 40, 20 },
+
     -- Dragonstar Arena
     ["Champion Marcauld"] = { 70, 40 }, ["Le champion Marcauld"] = { 70, 40 }, ["Чемпион Марко"] = { 70, 40 }, ["El campeón Marcauld"] = { 70, 40 }, ["チャンピオン・マルカウルド"] = { 70, 40 }, ["勇士马卡尔德"] = { 70, 40 },
     ["Anal'a Tu'wha"] = { 40 }, ["Анал'а Ту'ва"] = { 40 }, ["アナラ・ツワ"] = { 40 }, ["阿那拉·图哈"] = { 40 },
@@ -224,23 +227,23 @@ local StupidBossNamesInsteadOfId = {
     ["Matriarch Lladi Telvanni"] = { 70, 35 }, ["Matriarchin Lladi Telvanni"] = { 70, 35 }, ["La matriarche Lladi Telvanni"] = { 70, 35 }, ["Матриарх Ллади Телванни"] = { 70, 35 }, ["La matriarca Lladi Telvanni"] = { 70, 35 }, ["ルラディ・テルヴァンニ女族長"] = { 70, 35 }, ["女族长雷拉蒂·泰尔瓦尼"] = { 70, 35 },
 
     -- Oathsworn Pit
-    ["Anthelmir's Construct"] = { 70 },
-    ["Aradros the Awakened"] = { 51 },
+    ["Anthelmir's Construct"] = { 70 }, ["Anthelmirs Konstrukt"] = { 70 }, ["Assemblage d'Anthelmir"] = {70}, ["Творение Антелмир"] = { 70 }, ["autómata de Anthelmir"] = { 70 }, ["アンセルミルのコンストラクト"] = { 70 }, ["安塞尔莫的构造体"] = { 70 },
+    ["Aradros the Awakened"] = { 51 }, ["Aradros der Erwachte"] = { 51 }, ["Aradros l'Éveillé"] = { 51 }, ["Арадрос Пробужденный"] = { 51 }, ["Aradros el Despertado"] = { 51 }, ["覚醒者アラドロス"] = { 51 }, ["苏醒者亚拉德罗斯"] = { 51 },
 
     -- Bedlam Veil
-    ["Shattered Champion"] = { 70, 50 },
-    ["Darkshard"] = { 80, 60, 40 },
-    ["The Blind"] = { 81, 61, 41, 21 },
+    ["Shattered Champion"] = { 70, 50 }, ["zerschlagener Champion"] = { 70, 50 }, ["Champion brisé"] = { 70, 50 }, ["Расколотый воин"] = { 70, 50 }, ["Campeón Fragmentado"] = { 70, 50 }, ["砕けた勇者"] = { 70, 50 }, ["破碎勇士"] = { 70, 50 },
+    ["Darkshard"] = { 80, 60, 40 }, ["Dunkelscherbe"] = { 80, 60, 40 }, ["Fragment noir"] = { 80, 60, 40 }, ["Осколок Тьмы"] = { 80, 60, 40 }, ["Fragmento Oscuro"] = { 80, 60, 40 }, ["ダークシャード"] = { 80, 60, 40 }, ["暗黑碎片"] = { 80, 60, 40 },
+    ["The Blind"] = { 81, 61, 41, 21 }, ["Blinde"] = { 81, 61, 41, 21 }, ["Aveugle"] = { 81, 61, 41, 21 }, ["Слепая"] = { 81, 61, 41, 21 }, ["Invidente"] = { 81, 61, 41, 21 }, ["盲目者"] = { 81, 61, 41, 21 }, ["盲眼邪神"] = { 81, 61, 41, 21 },
 
     -- U45 Exiled Redoubt
-    ["Executioner Jerensi"] = { 80, 50, 30 },
-    ["Prime Sorcerer Vandorallen"] = { 90, 66, 45 },
-    ["Squall of Retribution"] = { 95, 88, 80, 70, 65, 55, 50, 45, 32, 22, 16, 5 },
+    ["Executioner Jerensi"] = { 80, 50, 30 }, ["Henkerin Jerensi"] = { 80, 50, 30 }, ["bourreau Jerensi"] = { 80, 50, 30 }, ["Палач Джеренси"] = { 80, 50, 30 }, ["verdugo Jerensi"] = { 80, 50, 30 }, ["処刑人ジェレンシ"] = { 80, 50, 30 }, ["行刑者耶伦希"] = { 80, 50, 30 },
+    ["Prime Sorcerer Vandorallen"] = { 90, 66, 45 }, ["oberster Zauberer Vandorallen"] = { 90, 66, 45 }, ["sorcier primat Vandorallen"] = { 90, 66, 45 }, ["Главный чародей Вандораллен"] = { 90, 66, 45 }, ["brujo supremo Vandorallen"] = { 90, 66, 45 }, ["筆頭妖術師ヴァンドラレン"] = { 90, 66, 45 }, ["首席术士范多拉伦"] = { 90, 66, 45 },
+    ["Squall of Retribution"] = { 95, 88, 80, 70, 65, 55, 50, 45, 32, 22, 16, 5 }, ["Bö der Vergeltung"] = { 95, 88, 80, 70, 65, 55, 50, 45, 32, 22, 16, 5 }, ["Grain punitif"] = { 95, 88, 80, 70, 65, 55, 50, 45, 32, 22, 16, 5 }, ["Шквал Возмездия"] = { 95, 88, 80, 70, 65, 55, 50, 45, 32, 22, 16, 5 }, ["Borrasca de Retribución"] = { 95, 88, 80, 70, 65, 55, 50, 45, 32, 22, 16, 5 }, ["報復のスコール"] = { 95, 88, 80, 70, 65, 55, 50, 45, 32, 22, 16, 5 }, ["惩罚之飑"] = { 95, 88, 80, 70, 65, 55, 50, 45, 32, 22, 16, 5 }, 
 
     -- U45 Lep Seclusa
-    ["Garvin the Tracker"] = { 80, 50, 40 },
-    ["Noriwen"] = { 70, 50, 20 },
-    ["Orpheon the Tactician"] = { 80, 50, 30 },
+    ["Garvin the Tracker"] = { 80, 50, 40 }, ["Garvin der Fährtenleser"] = { 80, 50, 40 }, ["Garvin le pisteur"] = { 80, 50, 40 }, ["Следопыт Гарвин"] = { 80, 50, 40 }, ["Garvin el Rastreador"] = { 80, 50, 40 }, ["追跡者ガーヴィン"] = { 80, 50, 40 }, ["追踪者加文"] = { 80, 50, 40 },
+    ["Noriwen"] = { 70, 50, 20 }, ["Noriwën"] = { 70, 50, 20 }, ["Норивен"] = { 70, 50, 20 }, ["ノリウェン"] = { 70, 50, 20 }, ["诺丽纹"] = { 70, 50, 20 },
+    ["Orpheon the Tactician"] = { 80, 50, 30 }, ["Orpheon der Taktiker"] = { 80, 50, 30 }, ["Orphéon le tacticien"] = { 80, 50, 30 }, ["Тактик Орфеон"] = { 80, 50, 30 }, ["Orfeón el Estratega"] = { 80, 50, 30 }, ["戦術家オルフェオン"] = { 80, 50, 30 }, ["战术家奥腓翁"] = { 80, 50, 30 },
 }
 
 local function getBossPercentagesByName(name)
@@ -638,7 +641,7 @@ local function InitializeAddonMenu()
                 RefreshAllBosses(true)
             end,
             width = "half",
-            default = DEFAULT_HP_COLOR_START,
+            default = { r = DEFAULT_HP_COLOR_START[1], g = DEFAULT_HP_COLOR_START[2], b = DEFAULT_HP_COLOR_START[3] },
         },
         {
             type = "colorpicker",
@@ -649,7 +652,7 @@ local function InitializeAddonMenu()
                 RefreshAllBosses(true)
             end,
             width = "half",
-            default = DEFAULT_HP_COLOR_END,
+            default = { r = DEFAULT_HP_COLOR_END[1], g = DEFAULT_HP_COLOR_END[2], b = DEFAULT_HP_COLOR_END[3] },
         },
         {
             type = "dropdown",
