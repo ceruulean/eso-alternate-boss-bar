@@ -1,4 +1,3 @@
-
 local NAME = 'AltBossBar'
 local SV_VER = 3
 
@@ -25,12 +24,10 @@ local DEFAULT_HP_COLOR_END = { 0.855, 0.188, 0.188 }
 local THEMES = {
     ["Plain"] = {
         template = "ABB_BossBar",
-        lineTemplate = "ABB_HP_Line_Template",
         calcWidth = function() return GuiRoot:GetWidth() * 0.35 end
     },
     ["Embellished"] = {
         template = "ABB_BossBar_Emb",
-        lineTemplate = "ABB_HP_Line_Grunge_Template",
         calcWidth = function() return GuiRoot:GetWidth() * 0.35 - 20 end
     }
 }
@@ -246,15 +243,6 @@ local StupidBossNamesInsteadOfId = {
     ["Orpheon the Tactician"] = { 80, 50, 30 }, ["Orpheon der Taktiker"] = { 80, 50, 30 }, ["Orphéon le tacticien"] = { 80, 50, 30 }, ["Тактик Орфеон"] = { 80, 50, 30 }, ["Orfeón el Estratega"] = { 80, 50, 30 }, ["戦術家オルフェオン"] = { 80, 50, 30 }, ["战术家奥腓翁"] = { 80, 50, 30 },
 }
 
-local function getBossPercentagesByName(name)
-    if StupidBossNamesInsteadOfId[name] ~= nil then
-        return StupidBossNamesInsteadOfId[name]
-    end
-    if SETTINGS.SHOW_DEFAULTS then
-        return { 75, 50, 25 } -- default Percentages
-    end
-end
-
 local function getWidth()
     if FN_ABB_GET_WIDTH ~= nil then return zo_clamp(FN_ABB_GET_WIDTH(), 400, 800) end
     return zo_clamp(GuiRoot:GetWidth() * .35, 400, 800)
@@ -262,7 +250,7 @@ end
 
 local PercentLineManager = ZO_ControlPool:Subclass()
 function PercentLineManager:New(parent, ...)
-    local obj = ZO_ControlPool.New(self, THEMES[SETTINGS.THEME_NAME].lineTemplate, parent, "ABB_HP_Line")
+    local obj = ZO_ControlPool.New(self, "ABB_HP_Line_"..SETTINGS.PERCENTAGE_LINE_STYLE.."_Template", parent, "ABB_HP_Line")
     --obj:Initialize( ... )
     return obj
 end
@@ -293,14 +281,23 @@ function ABB_BossBar:Initialize(bossTag, topLevelCtrl, previousBar)
     self.bracketLeft = self.control:GetNamedChild("BracketLeft")
     self.bracketRight = self.control:GetNamedChild("BracketRight")
     self.scaleX = 1.0
+    self.shouldWarn = false
+    self.warner = GetControl(self.control, "Warner")
+    self.warnerAnimation = ZO_AlphaAnimation:New(self.warner)
+
 
     local function PowerUpdateHandlerFunction(unitTag, powerPoolIndex, powerType, powerPool, powerPoolMax)
         self:OnPowerUpdate(unitTag, powerPool, powerPoolMax, false)
     end
     local powerUpdateEventHandler = ZO_MostRecentPowerUpdateHandler:New("BossBar"..bossTag, PowerUpdateHandlerFunction)
     powerUpdateEventHandler:AddFilterForEvent(REGISTER_FILTER_POWER_TYPE, POWERTYPE_HEALTH)
-    powerUpdateEventHandler:AddFilterForEvent(REGISTER_FILTER_UNIT_TAG_PREFIX, "boss")
     
+    if bossTag == "reticleover" then
+        powerUpdateEventHandler:AddFilterForEvent(REGISTER_FILTER_UNIT_TAG, bossTag)
+    else
+        powerUpdateEventHandler:AddFilterForEvent(REGISTER_FILTER_UNIT_TAG_PREFIX, "boss")
+    end
+
     self:RegisterUnit(bossTag)
     self.control:RegisterForEvent(EVENT_PLAYER_ACTIVATED, function() self:UpdateWidth() end)
     self.control:RegisterForEvent(EVENT_SCREEN_RESIZED, function() self:UpdateWidth() end)
@@ -327,6 +324,22 @@ function ABB_BossBar:UnregisterUnit()
     self.control:UnregisterForEvent(EVENT_UNIT_ATTRIBUTE_VISUAL_REMOVED)
 end
 
+function ABB_BossBar:GetBossPercentagesByName(name)
+    -- GetCVar("Language.2") returns locale like "en", "de"
+    -- local rawName = GetRawUnitName(unitTag)
+    if StupidBossNamesInsteadOfId[name] ~= nil then
+        self.bossPercentages = StupidBossNamesInsteadOfId[name]
+        self.shouldWarn = true
+        return
+    end
+    self.shouldWarn = false
+    if SETTINGS.SHOW_DEFAULTS then
+        self.bossPercentages = { 75, 50, 25 } -- default Percentages
+    else 
+        self.bossPercentages = nil
+    end
+end
+
 function ABB_BossBar:CreateLine(percent)
     local line = self.percentLinePool:AcquireObject()
     local x = (self.healthBar:GetWidth() / 100) * percent
@@ -349,7 +362,7 @@ function ABB_BossBar:Refresh(force)
     end
     local bossName = GetUnitName(self.unitTag)
     local health, maxHealth = GetUnitPower(self.unitTag, POWERTYPE_HEALTH)
-    self.bossPercentages = getBossPercentagesByName(bossName)
+    self:GetBossPercentagesByName(bossName)
     self.percentLinePool:ReleaseAllObjects()
     if self.bossPercentages ~= nil then
         for i = 1, #self.bossPercentages do
@@ -372,10 +385,14 @@ function ABB_BossBar:FormatPercent(health, maxHealth)
     else
         percentText = zo_round(percent)
     end
-    if self.bossPercentages ~= nil then
+    if self.bossPercentages ~= nil and SETTINGS.NOTIFY_ALERT then
         for i = 1, #self.bossPercentages do
             if (percent >= self.bossPercentages[i] and percent <= self.bossPercentages[i] + SETTINGS.NOTIFY_BEFORE_PERCENT) then
-                return zo_iconFormat("esoui/art/interaction/questnewavailable.dds", ICONSIZE-8, ICONSIZE-8)..percentText..'%'
+                if SETTINGS.NOTIFY_ALERT_TYPE == "Flash" then
+                    self:FlashWarning()
+                else
+                    return zo_iconFormat("esoui/art/interaction/questnewavailable.dds", ICONSIZE-8, ICONSIZE-8)..percentText..'%'
+                end
             end
         end
     end
@@ -450,8 +467,10 @@ function ABB_BossBar:ApplyAnchors()
         self.previousBar.nextBar = self
         self.control:SetAnchor(TOP, self.previousBar.control, BOTTOM)
     else
+        -- Only apply to the first bar
         self.control:SetAnchor(TOPLEFT, self.parent, TOPLEFT, 0, 0)
-        if self.bracketLeft ~= nil then
+        -- self.warner:SetWidth(getWidth() * self.scaleX)
+        if SETTINGS.THEME_NAME == "Embellished" then
             self.bracketLeft:SetHidden(false)
             self.bracketRight:SetHidden(false)
         end
@@ -482,6 +501,24 @@ function ABB_BossBar:Hide()
     end
 end
 
+function ABB_BossBar:FlashWarning()
+    local RESOURCE_WARNER_FLASH_TIME = 300
+    local RESOURCE_WARNER_NUM_FLASHES = 3
+    if not self.shouldWarn then return end
+    if not self.warnerAnimation:IsPlaying() then
+        self.warnerAnimation:PingPong(0, 1, RESOURCE_WARNER_FLASH_TIME, RESOURCE_WARNER_NUM_FLASHES)
+    else
+        --Reset the animation by making it do RESOURCE_WARNER_NUM_FLASHES after this point
+        local remainingLoops = self.warnerAnimation:GetPlaybackLoopsRemaining()
+        local newLoops = RESOURCE_WARNER_NUM_FLASHES
+        --If we're on the backswing of the ping pong we need to do one addition loop to make sure it ends in the alpha down state, otherwise it stops at full alpha
+        if remainingLoops % 2 == 0 then
+            newLoops = newLoops + 1
+        end
+        self.warnerAnimation:SetPlaybackLoopCount(newLoops)
+    end
+end
+
 local function AttachTargetTo(control)
     local targetFrame = UNIT_FRAMES:GetFrame("reticleover")
     local targetControl = targetFrame.frame
@@ -499,7 +536,10 @@ local function InitBars(topLevelCtrl)
         bossBars[i] = ABB_BossBar:New(bossTag, topLevelCtrl, prevBossBar)
         prevBossBar = bossBars[i]
     end
-
+    
+    if SETTINGS.INCLUDE_DUMMY then
+        bossBars[MAX_BOSSES + 1] = ABB_BossBar:New("reticleover", topLevelCtrl)
+    end
 end
 
 local function ScaleBossBars()
@@ -554,6 +594,25 @@ local function RefreshAllBosses(forceReset)
     end
 end
 
+local function RefreshExtraBar()
+    local i = MAX_BOSSES + 1
+    if DoesUnitExist(bossBars[i].unitTag) then
+        bossBars[i]:Refresh(forceReset)
+        bossBars[i]:Show()
+    else
+        bossBars[i]:Hide()
+    end
+end
+
+local function OnPlayerZoneChange(topLevelCtrl)
+    if (GetCurrentZoneHouseId() > 0) and SETTINGS.INCLUDE_DUMMY then
+        topLevelCtrl:RegisterForEvent(EVENT_RETICLE_TARGET_CHANGED, function() RefreshExtraBar() end)
+    else
+        topLevelCtrl:UnregisterForEvent(EVENT_RETICLE_TARGET_CHANGED)
+    end
+    RefreshAllBosses()
+end
+
 ABB_FakeGloss = ZO_Object:Subclass()
 function ABB_FakeGloss:New()
     return ZO_Object.New(self)
@@ -580,7 +639,7 @@ local function InitializeAddonMenu()
         name = "Alternative Boss Bars",
         displayName = "Alternative Boss Bars",
         author = "|c943810BulDeZir|r",
-        version = string.format('|c00FF00%s|r', 3),
+        version = string.format('|c00FF00%s|r', 3.1),
         registerForRefresh = true,
         registerForDefaults = true,
     })
@@ -600,29 +659,6 @@ local function InitializeAddonMenu()
         },
         {
             type = "checkbox",
-            name = "Show Default Percent Lines (75%, 50%, 25%)",
-            getFunc = function() return SETTINGS.SHOW_DEFAULTS end,
-            setFunc = function(newValue)
-                SETTINGS.SHOW_DEFAULTS = newValue
-                RefreshAllBosses()
-            end,
-            default = false,
-        },
-        {
-            type = "slider",
-            name = 'Number of %, BEFORE showing alert icon',
-            min = 0,
-            max = 5,
-            step = 1,
-            getFunc = function() return SETTINGS.NOTIFY_BEFORE_PERCENT end,
-            setFunc = function(newValue)
-                SETTINGS.NOTIFY_BEFORE_PERCENT = zo_round(newValue)
-                RefreshAllBosses()
-            end,
-            default = 2,
-        },
-        {
-            type = "checkbox",
             name = "Proportional Bars",
             tooltip = "Bosses with less max HP have shorter bars, and bars are sorted from most to least HP.",
             getFunc = function() return SETTINGS.SCALE_HP_PROPORTION end,
@@ -633,6 +669,91 @@ local function InitializeAddonMenu()
             default = false,
         },
         {
+            type = "checkbox",
+            name = "Include Combat Dummies",
+            requiresReload = true,
+            tooltip = "Show boss bar when fighting a dummy.",
+            getFunc = function() return SETTINGS.INCLUDE_DUMMY end,
+            setFunc = function(newValue)
+                SETTINGS.INCLUDE_DUMMY = newValue
+            end,
+            default = true,
+        },
+        {
+            type = "divider",
+            height = 5,
+            alpha = 1,
+            width = "full"
+        },
+        {
+            type = "dropdown",
+            name = "Percentage Line Style",
+            requiresReload = true,
+            choices = {"Hard", "Soft"},
+            getFunc = function() return SETTINGS.PERCENTAGE_LINE_STYLE end,
+            setFunc = function(newValue)
+                SETTINGS.PERCENTAGE_LINE_STYLE = newValue
+                RefreshAllBosses()
+            end,
+            default = "Hard"
+        },
+        {
+            type = "checkbox",
+            name = "Show Default Percent Lines (75%, 50%, 25%)",
+            getFunc = function() return SETTINGS.SHOW_DEFAULTS end,
+            setFunc = function(newValue)
+                SETTINGS.SHOW_DEFAULTS = newValue
+                RefreshAllBosses()
+            end,
+            default = false,
+        },
+        {
+            type = "checkbox",
+            name = "Alert Notification",
+            tooltip = "Whether the HP bar displays an alert for percent-based mechanics.",
+            getFunc = function() return SETTINGS.NOTIFY_ALERT end,
+            setFunc = function(newValue)
+                SETTINGS.NOTIFY_ALERT = newValue
+                RefreshAllBosses()
+            end,
+            default = false,
+            width = "half"
+        },
+        {
+            type = "slider",
+            name = "Threshold (%)",
+            tooltip = "Number of percent (%), BEFORE showing alert.",
+            min = 0,
+            max = 5,
+            step = 1,
+            getFunc = function() return SETTINGS.NOTIFY_BEFORE_PERCENT end,
+            setFunc = function(newValue)
+                SETTINGS.NOTIFY_BEFORE_PERCENT = zo_round(newValue)
+                RefreshAllBosses()
+            end,
+            disabled = function() return not SETTINGS.NOTIFY_ALERT end,
+            default = 2,
+            width = "half"
+        },
+        {
+            type = "dropdown",
+            name = "Alert Type",
+            tooltip = "'Icon' displays an icon near the HP total. 'Flash' makes the bar flash red.",
+            choices = {"Icon", "Flash"},
+            getFunc = function() return SETTINGS.NOTIFY_ALERT_TYPE end,
+            setFunc = function(newValue)
+                SETTINGS.NOTIFY_ALERT_TYPE = newValue
+            end,
+            disabled = function() return not SETTINGS.NOTIFY_ALERT end,
+            default = "Flash"
+        },
+        {
+            type = "divider",
+            height = 5,
+            alpha = 1,
+            width = "full"
+        },
+        {
             type = "colorpicker",
             name = "HP Color Gradient Start",
             getFunc = function() return unpack(SETTINGS.HP_COLOR_START) end,    --(alpha is optional)
@@ -641,7 +762,7 @@ local function InitializeAddonMenu()
                 RefreshAllBosses(true)
             end,
             width = "half",
-            default = { r = DEFAULT_HP_COLOR_START[1], g = DEFAULT_HP_COLOR_START[2], b = DEFAULT_HP_COLOR_START[3] },
+            default = ZO_POWER_BAR_GRADIENT_COLORS[COMBAT_MECHANIC_FLAGS_HEALTH][1],
         },
         {
             type = "colorpicker",
@@ -652,7 +773,7 @@ local function InitializeAddonMenu()
                 RefreshAllBosses(true)
             end,
             width = "half",
-            default = { r = DEFAULT_HP_COLOR_END[1], g = DEFAULT_HP_COLOR_END[2], b = DEFAULT_HP_COLOR_END[3] },
+            default = ZO_POWER_BAR_GRADIENT_COLORS[COMBAT_MECHANIC_FLAGS_HEALTH][2],
         },
         {
             type = "dropdown",
@@ -677,7 +798,11 @@ function ABB_Initialize(topLevelCtrl)
             SETTINGS = ZO_SavedVars:NewAccountWide("AltBossBarSavedVariables", SV_VER, nil, {
                 REPLACE_COMPASS = true,
                 SHOW_DEFAULTS = false,
+                INCLUDE_DUMMY = false,
+                PERCENTAGE_LINE_STYLE = "Hard",
+                NOTIFY_ALERT = false,
                 NOTIFY_BEFORE_PERCENT = 2,
+                NOTIFY_ALERT_TYPE = "Flash",
                 SCALE_HP_PROPORTION = false,
                 HP_COLOR_START = DEFAULT_HP_COLOR_START,
                 HP_COLOR_END = DEFAULT_HP_COLOR_END,
@@ -690,15 +815,12 @@ function ABB_Initialize(topLevelCtrl)
             local fragment = ZO_SimpleSceneFragment:New(topLevelCtrl)
             HUD_SCENE:AddFragment(fragment)
             HUD_UI_SCENE:AddFragment(fragment)
-
             SetVisualSettings()
 
             InitBars(topLevelCtrl)
             topLevelCtrl:RegisterForEvent(EVENT_BOSSES_CHANGED, function(_, forceReset) RefreshAllBosses(forceReset) end)
-            -- topLevelCtrl:RegisterForEvent(EVENT_PLAYER_ACTIVATED, function() RefreshAllBosses() end)
+            topLevelCtrl:RegisterForEvent(EVENT_PLAYER_ACTIVATED, function() OnPlayerZoneChange(topLevelCtrl) end)
             topLevelCtrl:RegisterForEvent(EVENT_GAMEPAD_PREFERRED_MODE_CHANGED, function() RefreshAllBosses(true) end)
-
-            EVENT_MANAGER:UnregisterForEvent(NAME, EVENT_ADD_ON_LOADED)
         end
     end
 
