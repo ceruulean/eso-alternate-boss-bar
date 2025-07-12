@@ -596,7 +596,8 @@ end
 
 local function RefreshExtraBar()
     local i = MAX_BOSSES + 1
-    if DoesUnitExist(bossBars[i].unitTag) then
+    local isDummy = GetUnitType(bossBars[i].unitTag) == 12
+    if isDummy and DoesUnitExist(bossBars[i].unitTag) then
         bossBars[i]:Refresh(forceReset)
         bossBars[i]:Show()
     else
@@ -677,7 +678,7 @@ local function InitializeAddonMenu()
             setFunc = function(newValue)
                 SETTINGS.INCLUDE_DUMMY = newValue
             end,
-            default = true,
+            default = false,
         },
         {
             type = "divider",

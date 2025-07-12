@@ -9,7 +9,7 @@
 ## Author: |c943810BulDeZir|r
 ## Version: 3.0
 ## SavedVariables: AltBossBarSavedVariables
-## DependsOn: LibAddonMenu-2.0
+## DependsOn: LibAddonMenu-2.0>=38
 
 AltBossBar.lua
 AltBossBar.xml
