@@ -285,7 +285,6 @@ function ABB_BossBar:Initialize(bossTag, topLevelCtrl, previousBar)
     self.warner = GetControl(self.control, "Warner")
     self.warnerAnimation = ZO_AlphaAnimation:New(self.warner)
 
-
     local function PowerUpdateHandlerFunction(unitTag, powerPoolIndex, powerType, powerPool, powerPoolMax)
         self:OnPowerUpdate(unitTag, powerPool, powerPoolMax, false)
     end
@@ -324,7 +323,23 @@ function ABB_BossBar:UnregisterUnit()
     self.control:UnregisterForEvent(EVENT_UNIT_ATTRIBUTE_VISUAL_REMOVED)
 end
 
-function ABB_BossBar:GetBossPercentagesByName(name)
+function ABB_BossBar:GetBossPercentagesByName(name, maxHealth)
+    if SETTINGS.USE_CRUTCHALERTS_TH and (CrutchAlerts.BossHealthBar.thresholds[name]) then
+        local thresholds = CrutchAlerts.BossHealthBar.thresholds[name]
+        self.bossPercentages = {}
+        local thresholds_mode = thresholds
+        if (thresholds.hmHealth == maxHealth) then
+            thresholds_mode = thresholds.Hardmode
+        elseif (thresholds.Veteran ~= nil) then
+            thresholds_mode = thresholds.Veteran
+        end
+        for key, _ in pairs(thresholds_mode) do
+            table.insert(self.bossPercentages, key)
+        end
+        self.shouldWarn = true
+        return
+    end
+
     -- GetCVar("Language.2") returns locale like "en", "de"
     -- local rawName = GetRawUnitName(unitTag)
     if StupidBossNamesInsteadOfId[name] ~= nil then
@@ -332,12 +347,12 @@ function ABB_BossBar:GetBossPercentagesByName(name)
         self.shouldWarn = true
         return
     end
-    self.shouldWarn = false
     if SETTINGS.SHOW_DEFAULTS then
         self.bossPercentages = { 75, 50, 25 } -- default Percentages
     else 
         self.bossPercentages = nil
     end
+    self.shouldWarn = false
 end
 
 function ABB_BossBar:CreateLine(percent)
@@ -362,7 +377,7 @@ function ABB_BossBar:Refresh(force)
     end
     local bossName = GetUnitName(self.unitTag)
     local health, maxHealth = GetUnitPower(self.unitTag, POWERTYPE_HEALTH)
-    self:GetBossPercentagesByName(bossName)
+    self:GetBossPercentagesByName(bossName, maxHealth)
     self.percentLinePool:ReleaseAllObjects()
     if self.bossPercentages ~= nil then
         for i = 1, #self.bossPercentages do
@@ -710,6 +725,22 @@ local function InitializeAddonMenu()
         },
         {
             type = "checkbox",
+            name = "Use CrutchAlerts Thresholds",
+            tooltip = "If CrutchAlerts is installed, use their mechanic thresholds instead.",
+            getFunc = function() return SETTINGS.USE_CRUTCHALERTS_TH end,
+            setFunc = function(newValue)
+                SETTINGS.USE_CRUTCHALERTS_TH = newValue
+                RefreshAllBosses()
+            end,
+            default = false,
+            warning = function()
+                if not (CrutchAlerts) then return "CrutchAlerts is not active." else return nil end
+            end,
+            disabled = function() return not CrutchAlerts end,
+            width = "full"
+        },
+        {
+            type = "checkbox",
             name = "Alert Notification",
             tooltip = "Whether the HP bar displays an alert for percent-based mechanics.",
             getFunc = function() return SETTINGS.NOTIFY_ALERT end,
@@ -792,7 +823,6 @@ local function InitializeAddonMenu()
 end
 
 function ABB_Initialize(topLevelCtrl)
-
     local function OnAddOnLoaded(_, addonName)
         if addonName == NAME then
 
@@ -801,6 +831,7 @@ function ABB_Initialize(topLevelCtrl)
                 SHOW_DEFAULTS = false,
                 INCLUDE_DUMMY = false,
                 PERCENTAGE_LINE_STYLE = "Hard",
+                USE_CRUTCHALERTS_TH = false,
                 NOTIFY_ALERT = false,
                 NOTIFY_BEFORE_PERCENT = 2,
                 NOTIFY_ALERT_TYPE = "Flash",
@@ -822,6 +853,8 @@ function ABB_Initialize(topLevelCtrl)
             topLevelCtrl:RegisterForEvent(EVENT_BOSSES_CHANGED, function(_, forceReset) RefreshAllBosses(forceReset) end)
             topLevelCtrl:RegisterForEvent(EVENT_PLAYER_ACTIVATED, function() OnPlayerZoneChange(topLevelCtrl) end)
             topLevelCtrl:RegisterForEvent(EVENT_GAMEPAD_PREFERRED_MODE_CHANGED, function() RefreshAllBosses(true) end)
+            
+            EVENT_MANAGER:UnregisterForEvent(NAME, EVENT_ADD_ON_LOADED)
         end
     end
 

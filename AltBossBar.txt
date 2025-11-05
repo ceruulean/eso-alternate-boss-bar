@@ -10,6 +10,7 @@
 ## Version: 3.0
 ## SavedVariables: AltBossBarSavedVariables
 ## DependsOn: LibAddonMenu-2.0>=38
+## OptionalDependsOn: CrutchAlerts
 
 AltBossBar.lua
 AltBossBar.xml
