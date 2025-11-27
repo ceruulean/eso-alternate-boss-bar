@@ -241,6 +241,9 @@ local StupidBossNamesInsteadOfId = {
     ["Garvin the Tracker"] = { 80, 50, 40 }, ["Garvin der Fährtenleser"] = { 80, 50, 40 }, ["Garvin le pisteur"] = { 80, 50, 40 }, ["Следопыт Гарвин"] = { 80, 50, 40 }, ["Garvin el Rastreador"] = { 80, 50, 40 }, ["追跡者ガーヴィン"] = { 80, 50, 40 }, ["追踪者加文"] = { 80, 50, 40 },
     ["Noriwen"] = { 70, 50, 20 }, ["Noriwën"] = { 70, 50, 20 }, ["Норивен"] = { 70, 50, 20 }, ["ノリウェン"] = { 70, 50, 20 }, ["诺丽纹"] = { 70, 50, 20 },
     ["Orpheon the Tactician"] = { 80, 50, 30 }, ["Orpheon der Taktiker"] = { 80, 50, 30 }, ["Orphéon le tacticien"] = { 80, 50, 30 }, ["Тактик Орфеон"] = { 80, 50, 30 }, ["Orfeón el Estratega"] = { 80, 50, 30 }, ["戦術家オルフェオン"] = { 80, 50, 30 }, ["战术家奥腓翁"] = { 80, 50, 30 },
+
+    -- U46 Ossein Cage
+    ["Shaper of Flesh"] = { 17, 34, 50, 67, 84 }
 }
 
 local function getWidth()
@@ -254,6 +257,10 @@ function PercentLineManager:New(parent, ...)
     --obj:Initialize( ... )
     return obj
 end
+
+local bossBars = {}
+local consolidatedBosses = {}
+local CONSOLIDATE_BARS = false
 
 local ABB_BossBar = ZO_Object:Subclass()
 function ABB_BossBar:New(...)
@@ -323,15 +330,25 @@ function ABB_BossBar:UnregisterUnit()
     self.control:UnregisterForEvent(EVENT_UNIT_ATTRIBUTE_VISUAL_REMOVED)
 end
 
+local function RefreshConslidatedHp(unitTag)
+    if consolidatedBosses[unitTag] ~= nil then
+        local health, maxHealth = GetUnitPower(unitTag, COMBAT_MECHANIC_FLAGS_HEALTH)
+        consolidatedBosses[unitTag].health = health
+        consolidatedBosses[unitTag].maxHealth = maxHealth
+    end
+end
+
 function ABB_BossBar:GetBossPercentagesByName(name, maxHealth)
-    if SETTINGS.USE_CRUTCHALERTS_TH and (CrutchAlerts.BossHealthBar.thresholds[name]) then
+    if CrutchAlerts and SETTINGS.USE_CRUTCHALERTS_TH and (CrutchAlerts.BossHealthBar.thresholds[name]) then
         local thresholds = CrutchAlerts.BossHealthBar.thresholds[name]
         self.bossPercentages = {}
         local thresholds_mode = thresholds
         if (thresholds.hmHealth == maxHealth) then
             thresholds_mode = thresholds.Hardmode
-        elseif (thresholds.Veteran ~= nil) then
+        elseif (thresholds.vetHealth == maxHealth) then
             thresholds_mode = thresholds.Veteran
+        elseif (thresholds.Normal ~= nil) then
+            thresholds_mode = thresholds.Normal
         end
         for key, _ in pairs(thresholds_mode) do
             table.insert(self.bossPercentages, key)
@@ -414,18 +431,40 @@ function ABB_BossBar:FormatPercent(health, maxHealth)
     return percentText..'%'
 end
 
-function ABB_BossBar:OnPowerUpdate(sourceUnit, health, maxHealth, force)
-    if sourceUnit ~= self.unitTag then
-        return
-    end
-    ZO_StatusBar_SmoothTransition(self.healthBar, health, maxHealth, force)
+function ABB_BossBar:SetHealthText(health, maxHealth)
     self.healthLeftBgBar:SetValue((health > 0 and 1 or 0))
-
     if health > 0 and not IsUnitDead(self.unitTag) then
         self.healthText:SetText(ZO_AbbreviateAndLocalizeNumber(health, NUMBER_ABBREVIATION_PRECISION_TENTHS, false) .. " " .. self:FormatPercent(health, maxHealth))
     else
         self.healthText:SetText(zo_iconFormat("esoui/art/icons/mapkey/mapkey_groupboss.dds", ICONSIZE, ICONSIZE))
     end
+end
+
+function ABB_BossBar:OnPowerUpdate(sourceUnit, health, maxHealth, force)
+
+    local function RefreshConslidatedHpBar(barframe, textframe, force)
+        local totalHealth = 0
+        local totalMaxHealth = 0
+
+        for unitTag, bossEntry in pairs(consolidatedBosses) do
+            totalHealth = totalHealth + bossEntry.health
+            totalMaxHealth = totalMaxHealth + bossEntry.maxHealth
+        end
+        ZO_StatusBar_SmoothTransition(barframe, totalHealth, totalMaxHealth, force)
+        self:SetHealthText(totalHealth, totalMaxHealth)
+    end
+
+    if CONSOLIDATE_BARS and self.unitTag == bossBars[1].unitTag then
+        RefreshConslidatedHp(sourceUnit)
+        RefreshConslidatedHpBar(self.healthBar, self.healthText, force)
+        return
+    end
+
+    if sourceUnit ~= self.unitTag then
+        return
+    end
+    ZO_StatusBar_SmoothTransition(self.healthBar, health, maxHealth, force)
+    self:SetHealthText(health, maxHealth)
 end
 
 function ABB_BossBar:OnUavUpdate(unitAttributeVisual, _, _, _, value1)
@@ -541,8 +580,6 @@ local function AttachTargetTo(control)
     targetControl:SetAnchor(TOP, control, BOTTOM, 0, 5)
 end
 
-local bossBars = {}
-
 local function InitBars(topLevelCtrl)
     local prevBossBar
 
@@ -574,7 +611,7 @@ local function ScaleBossBars()
         table.sort(bossOrder, function(a,b) return a.maxhp > b.maxhp end)
         for i, val in ipairs(bossOrder) do
             bossBars[i]:RegisterUnit(val.tag)
-            bossBars[i].scaleX = zo_clamp(val.maxhp / highestHealthValue, 0.4, 1.0)
+            bossBars[i].scaleX = zo_clamp(val.maxhp / highestHealthValue, 0.5, 1.0)
         end
     else
         for i = 1, MAX_BOSSES do
@@ -583,23 +620,60 @@ local function ScaleBossBars()
     end
 end
 
+local function ConsolidateBars(forceReset)
+    --if there are multiple bosses and one of them dies and despawns in the middle of the fight we
+    --still want to show them as part of the boss bar (otherwise it will reset to 100%).
+    local currentBossCount = 0
+    for i = 1, MAX_BOSSES do
+        local unitTag = "boss" .. i
+        if DoesUnitExist(unitTag) then
+            local h, m = GetUnitPower(unitTag, COMBAT_MECHANIC_FLAGS_HEALTH)
+            consolidatedBosses[unitTag] = {}
+            consolidatedBosses[unitTag].health = h
+            consolidatedBosses[unitTag].maxHealth = m
+            currentBossCount = currentBossCount + 1
+        end
+    end
+
+    if currentBossCount > 0 then
+        bossBars[1].scaleX = 1.0
+        bossBars[1]:Show()
+    else
+        bossBars[1]:Hide()
+    end
+
+    if forceReset or (currentBossCount == 0 and next(consolidatedBosses) ~= nil) then
+        consolidatedBosses = {}
+        for i = 1, MAX_BOSSES do
+            bossBars[i]:Hide()
+        end
+    else
+        bossBars[1]:Refresh(forceReset)
+    end
+end
+
 local function RefreshAllBosses(forceReset)
     local abbContainer = GetControl("ABB_Container")
     local lastBossBar
 
-    ScaleBossBars()
-    for i = 1, MAX_BOSSES do
+    if CONSOLIDATE_BARS then
+        ConsolidateBars(forceReset)
+        lastBossBar = bossBars[1]
+    else
+        ScaleBossBars()
+        for i = 1, MAX_BOSSES do
 
-        if DoesUnitExist(bossBars[i].unitTag) then
-            bossBars[i]:Refresh(forceReset)
-            bossBars[i]:Show()
-        else
-            bossBars[i]:Hide()
-            do break end
+            if DoesUnitExist(bossBars[i].unitTag) then
+                bossBars[i]:Refresh(forceReset)
+                bossBars[i]:Show()
+            else
+                bossBars[i]:Hide()
+                do break end
+            end
+            lastBossBar = bossBars[i]
         end
-        lastBossBar = bossBars[i]
     end
-    
+
     if lastBossBar ~= nil then
         COMPASS_FRAME_FRAGMENT:SetHiddenForReason("ABBar", SETTINGS.REPLACE_COMPASS)
         AttachTargetTo(lastBossBar.control)
@@ -620,13 +694,23 @@ local function RefreshExtraBar()
     end
 end
 
+local function InOsseinCageShaperMap()
+    return (GetZoneId(GetUnitZoneIndex("player")) == 1548 and (GetMapTileTexture():match('Art/maps/dungeons/OssCage_Section1Map002_0.dds')))
+end
+
 local function OnPlayerZoneChange(topLevelCtrl)
     if (GetCurrentZoneHouseId() > 0) and SETTINGS.INCLUDE_DUMMY then
         topLevelCtrl:RegisterForEvent(EVENT_RETICLE_TARGET_CHANGED, function() RefreshExtraBar() end)
     else
         topLevelCtrl:UnregisterForEvent(EVENT_RETICLE_TARGET_CHANGED)
     end
-    RefreshAllBosses()
+    -- Ossein Cage Shapers of Flesh
+    if InOsseinCageShaperMap() then
+        CONSOLIDATE_BARS = true
+    else
+        CONSOLIDATE_BARS = false
+    end
+    RefreshAllBosses(true)
 end
 
 ABB_FakeGloss = ZO_Object:Subclass()
@@ -655,7 +739,7 @@ local function InitializeAddonMenu()
         name = "Alternative Boss Bars",
         displayName = "Alternative Boss Bars",
         author = "|c943810BulDeZir|r",
-        version = string.format('|c00FF00%s|r', 3.1),
+        version = string.format('|c00FF00%s|r', 3.2),
         registerForRefresh = true,
         registerForDefaults = true,
     })
@@ -819,6 +903,25 @@ local function InitializeAddonMenu()
             end,
             default = "Plain"
         },
+        {
+            type = "divider",
+            height = 5,
+            alpha = 1,
+            width = "full"
+        },
+        {
+            type = "checkbox",
+            name = "Ossein Cage: Consolidate Shapers",
+            tooltip = "Display the Shapers of Flesh as one bar.",
+            getFunc = function() return SETTINGS.CONSOLIDATE_SHAPERS end,
+            setFunc = function(newValue)
+                SETTINGS.CONSOLIDATE_SHAPERS = newValue
+                if InOsseinCageShaperMap() then CONSOLIDATE_BARS = newValue end
+                RefreshAllBosses(true)
+            end,
+            default = false,
+            width = "full"
+        }
     })
 end
 
@@ -838,7 +941,8 @@ function ABB_Initialize(topLevelCtrl)
                 SCALE_HP_PROPORTION = false,
                 HP_COLOR_START = DEFAULT_HP_COLOR_START,
                 HP_COLOR_END = DEFAULT_HP_COLOR_END,
-                THEME_NAME = "Plain"
+                THEME_NAME = "Plain",
+                CONSOLIDATE_SHAPERS = false,
             })
 
             InitializeAddonMenu()
@@ -853,7 +957,7 @@ function ABB_Initialize(topLevelCtrl)
             topLevelCtrl:RegisterForEvent(EVENT_BOSSES_CHANGED, function(_, forceReset) RefreshAllBosses(forceReset) end)
             topLevelCtrl:RegisterForEvent(EVENT_PLAYER_ACTIVATED, function() OnPlayerZoneChange(topLevelCtrl) end)
             topLevelCtrl:RegisterForEvent(EVENT_GAMEPAD_PREFERRED_MODE_CHANGED, function() RefreshAllBosses(true) end)
-            
+
             EVENT_MANAGER:UnregisterForEvent(NAME, EVENT_ADD_ON_LOADED)
         end
     end
