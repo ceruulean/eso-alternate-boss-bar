@@ -243,7 +243,7 @@ local StupidBossNamesInsteadOfId = {
     ["Orpheon the Tactician"] = { 80, 50, 30 }, ["Orpheon der Taktiker"] = { 80, 50, 30 }, ["Orphéon le tacticien"] = { 80, 50, 30 }, ["Тактик Орфеон"] = { 80, 50, 30 }, ["Orfeón el Estratega"] = { 80, 50, 30 }, ["戦術家オルフェオン"] = { 80, 50, 30 }, ["战术家奥腓翁"] = { 80, 50, 30 },
 
     -- U46 Ossein Cage
-    ["Shaper of Flesh"] = { 17, 34, 50, 67, 84 }
+    -- ["Shaper of Flesh"] = { 17, 34, 50, 67, 84 }
 }
 
 local function getWidth()
@@ -259,7 +259,8 @@ function PercentLineManager:New(parent, ...)
 end
 
 local bossBars = {}
-local currentBossHealth = {}
+currentBossHealth = {}
+local bossCount = 0
 local CONSOLIDATE_BARS = false
 
 local ABB_BossBar = ZO_Object:Subclass()
@@ -330,33 +331,24 @@ function ABB_BossBar:UnregisterUnit()
     self.control:UnregisterForEvent(EVENT_UNIT_ATTRIBUTE_VISUAL_REMOVED)
 end
 
-local function RefreshCurrentHp(unitTag)
-    if currentBossHealth[unitTag] ~= nil then
-        local health, maxHealth = GetUnitPower(unitTag, COMBAT_MECHANIC_FLAGS_HEALTH)
-        currentBossHealth[unitTag].health = health
-        currentBossHealth[unitTag].maxHealth = maxHealth
-    end
-end
-
-function ABB_BossBar:GetBossPercentagesByName(name, maxHealth)
+function ABB_BossBar:SetBossPercentages(name, maxHealth)
     if CrutchAlerts and SETTINGS.USE_CRUTCHALERTS_TH and (CrutchAlerts.BossHealthBar.thresholds[name]) then
         local thresholds = CrutchAlerts.BossHealthBar.thresholds[name]
         self.bossPercentages = {}
         local thresholds_mode = thresholds
         if (thresholds.hmHealth == maxHealth) then
-            thresholds_mode = thresholds.Hardmode
+            thresholds_mode = thresholds.Hardmode or thresholds
         elseif (thresholds.vetHealth == maxHealth) then
-            thresholds_mode = thresholds.Veteran
+            thresholds_mode = thresholds.Veteran or thresholds
         elseif (thresholds.Normal ~= nil) then
-            thresholds_mode = thresholds.Normal
+            thresholds_mode = thresholds.Normal or thresholds
         end
         for key, _ in pairs(thresholds_mode) do
-            table.insert(self.bossPercentages, key)
+            if type(key) == "number" then table.insert(self.bossPercentages, key) end
         end
         self.shouldWarn = true
         return
     end
-
     -- GetCVar("Language.2") returns locale like "en", "de"
     -- local rawName = GetRawUnitName(unitTag)
     if StupidBossNamesInsteadOfId[name] ~= nil then
@@ -364,7 +356,13 @@ function ABB_BossBar:GetBossPercentagesByName(name, maxHealth)
         self.shouldWarn = true
         return
     end
-    if SETTINGS.SHOW_DEFAULTS then
+    if CONSOLIDATE_BARS then -- assumes all bosses have equal hp
+        local n = 100.0 / bossCount
+        self.bossPercentages = {}
+        for i = 1, bossCount - 1 do
+            table.insert(self.bossPercentages, zo_round(i * n) )
+        end
+    elseif SETTINGS.SHOW_DEFAULTS then
         self.bossPercentages = { 75, 50, 25 } -- default Percentages
     else 
         self.bossPercentages = nil
@@ -392,18 +390,20 @@ function ABB_BossBar:Refresh(force)
     else
         self:UpdateWidth()
     end
-    local bossName = GetUnitName(self.unitTag)
-    local health, maxHealth = GetUnitPower(self.unitTag, POWERTYPE_HEALTH)
-    currentBossHealth[self.unitTag] = { health = health, maxHealth = maxHealth }
-    self:GetBossPercentagesByName(bossName, maxHealth)
-    self.percentLinePool:ReleaseAllObjects()
-    if self.bossPercentages ~= nil then
-        for i = 1, #self.bossPercentages do
-            self:CreateLine(self.bossPercentages[i])
+    if DoesUnitExist(self.unitTag) then
+        local bossName = GetUnitName(self.unitTag)
+        local health, maxHealth = GetUnitPower(self.unitTag, POWERTYPE_HEALTH)
+        currentBossHealth[self.unitTag] = { health = health, maxHealth = maxHealth }
+        self:SetBossPercentages(bossName, maxHealth)
+        self.percentLinePool:ReleaseAllObjects()
+        if self.bossPercentages ~= nil then
+            for i = 1, #self.bossPercentages do
+                self:CreateLine(self.bossPercentages[i])
+            end
         end
+        self.nameText:SetText(bossName)
+        self:OnPowerUpdate(self.unitTag, health, maxHealth, force)
     end
-    self.nameText:SetText(bossName)
-    self:OnPowerUpdate(self.unitTag, health, maxHealth, force)
 end
 
 function ABB_BossBar:FormatPercent(health, maxHealth)
@@ -442,26 +442,27 @@ function ABB_BossBar:SetHealthText(health, maxHealth)
 end
 
 function ABB_BossBar:OnPowerUpdate(sourceUnit, health, maxHealth, force)
-
-    local function RefreshConsolidatedHpBar(barframe, textframe, force)
-        local totalHealth = 0
-        local totalMaxHealth = 0
-
-        for unitTag, bossEntry in pairs(currentBossHealth) do
-            totalHealth = totalHealth + bossEntry.health
-            totalMaxHealth = totalMaxHealth + bossEntry.maxHealth
-        end
-        ZO_StatusBar_SmoothTransition(barframe, totalHealth, totalMaxHealth, force)
-        self:SetHealthText(totalHealth, totalMaxHealth)
-    end
-
     -- redo percent lines on hardmode activation
     if currentBossHealth[self.unitTag] and currentBossHealth[self.unitTag].maxHealth ~= maxHealth then
         self:Refresh(true)
     end
 
+    local function RefreshConsolidatedHpBar(barframe, textframe, force)
+        local totalHp = 0
+        local currentHp = 0
+        for unitTag, bossEntry in pairs(currentBossHealth) do
+            currentHp = currentHp + bossEntry.health
+            totalHp = totalHp + bossEntry.maxHealth
+        end
+        ZO_StatusBar_SmoothTransition(barframe, currentHp, totalHp, force)
+        self:SetHealthText(currentHp, totalHp)
+    end
     if CONSOLIDATE_BARS and self.unitTag == bossBars[1].unitTag then
-        RefreshCurrentHp(sourceUnit)
+        if currentBossHealth[sourceUnit] ~= nil then
+            local health, maxHealth = GetUnitPower(sourceUnit, POWERTYPE_HEALTH)
+            currentBossHealth[sourceUnit].health = health
+            currentBossHealth[sourceUnit].maxHealth = maxHealth
+        end
         RefreshConsolidatedHpBar(self.healthBar, self.healthText, force)
         return
     end
@@ -627,28 +628,28 @@ local function ScaleBossBars()
 end
 
 local function ConsolidateBars(forceReset)
+    local aliveBossCount = 0
     --if there are multiple bosses and one of them dies and despawns in the middle of the fight we
-    --still want to show them as part of the boss bar (otherwise it will reset to 100%).
-    local currentBossCount = 0
+    --still show them as part of the boss bar (otherwise it'll reset to 100%).
     for i = 1, MAX_BOSSES do
         local unitTag = "boss" .. i
         if DoesUnitExist(unitTag) then
             local h, m = GetUnitPower(unitTag, COMBAT_MECHANIC_FLAGS_HEALTH)
-            currentBossHealth[unitTag] = {}
-            currentBossHealth[unitTag].health = h
-            currentBossHealth[unitTag].maxHealth = m
-            currentBossCount = currentBossCount + 1
+            currentBossHealth[unitTag] = { health = h, maxHealth = m}
+            aliveBossCount = aliveBossCount + 1
         end
     end
 
-    if currentBossCount > 0 then
+    if aliveBossCount > 0 then
+        bossCount = math.max(bossCount, aliveBossCount)
         bossBars[1].scaleX = 1.0
         bossBars[1]:Show()
     else
+        bossCount = 0
         bossBars[1]:Hide()
     end
 
-    if forceReset or (currentBossCount == 0 and next(currentBossHealth) ~= nil) then
+    if forceReset or (aliveBossCount == 0 and next(currentBossHealth) ~= nil) then
         currentBossHealth = {}
         for i = 1, MAX_BOSSES do
             bossBars[i]:Hide()
@@ -668,7 +669,6 @@ local function RefreshAllBosses(forceReset)
     else
         ScaleBossBars()
         for i = 1, MAX_BOSSES do
-
             if DoesUnitExist(bossBars[i].unitTag) then
                 bossBars[i]:Refresh(forceReset)
                 bossBars[i]:Show()
@@ -711,7 +711,7 @@ local function OnPlayerZoneChange(topLevelCtrl)
         topLevelCtrl:UnregisterForEvent(EVENT_RETICLE_TARGET_CHANGED)
     end
     -- Ossein Cage Shapers of Flesh
-    if InOsseinCageShaperMap() then
+    if SETTINGS.CONSOLIDATE_SHAPERS and InOsseinCageShaperMap() then
         CONSOLIDATE_BARS = true
     else
         CONSOLIDATE_BARS = false
@@ -787,21 +787,9 @@ local function InitializeAddonMenu()
         },
         {
             type = "divider",
-            height = 5,
+            height = 3,
             alpha = 1,
             width = "full"
-        },
-        {
-            type = "dropdown",
-            name = "Percentage Line Style",
-            requiresReload = true,
-            choices = {"Hard", "Soft"},
-            getFunc = function() return SETTINGS.PERCENTAGE_LINE_STYLE end,
-            setFunc = function(newValue)
-                SETTINGS.PERCENTAGE_LINE_STYLE = newValue
-                RefreshAllBosses()
-            end,
-            default = "Hard"
         },
         {
             type = "checkbox",
@@ -860,7 +848,7 @@ local function InitializeAddonMenu()
         {
             type = "dropdown",
             name = "Alert Type",
-            tooltip = "'Icon' displays an icon near the HP total. 'Flash' makes the bar flash red.",
+            tooltip = "'Icon' displays an icon near the HP total. 'Flash' makes the bar flash with a red glow.",
             choices = {"Icon", "Flash"},
             getFunc = function() return SETTINGS.NOTIFY_ALERT_TYPE end,
             setFunc = function(newValue)
@@ -878,7 +866,7 @@ local function InitializeAddonMenu()
         {
             type = "colorpicker",
             name = "HP Color Gradient Start",
-            getFunc = function() return unpack(SETTINGS.HP_COLOR_START) end,    --(alpha is optional)
+            getFunc = function() return unpack(SETTINGS.HP_COLOR_START) end,
             setFunc = function(r,g,b,a)
                 SETTINGS.HP_COLOR_START = { r,g,b }
                 RefreshAllBosses(true)
@@ -889,13 +877,25 @@ local function InitializeAddonMenu()
         {
             type = "colorpicker",
             name = "HP Color Gradient End",
-            getFunc = function() return unpack(SETTINGS.HP_COLOR_END) end,    --(alpha is optional)
+            getFunc = function() return unpack(SETTINGS.HP_COLOR_END) end,
             setFunc = function(r,g,b,a)
                 SETTINGS.HP_COLOR_END = { r,g,b }
                 RefreshAllBosses(true)
             end,
             width = "half",
             default = ZO_POWER_BAR_GRADIENT_COLORS[COMBAT_MECHANIC_FLAGS_HEALTH][2],
+        },
+        {
+            type = "dropdown",
+            name = "Percentage Line Style",
+            requiresReload = true,
+            choices = {"Hard", "Soft"},
+            getFunc = function() return SETTINGS.PERCENTAGE_LINE_STYLE end,
+            setFunc = function(newValue)
+                SETTINGS.PERCENTAGE_LINE_STYLE = newValue
+                RefreshAllBosses()
+            end,
+            default = "Hard"
         },
         {
             type = "dropdown",
