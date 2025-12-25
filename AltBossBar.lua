@@ -259,7 +259,7 @@ function PercentLineManager:New(parent, ...)
 end
 
 local bossBars = {}
-local consolidatedBosses = {}
+local currentBossHealth = {}
 local CONSOLIDATE_BARS = false
 
 local ABB_BossBar = ZO_Object:Subclass()
@@ -330,11 +330,11 @@ function ABB_BossBar:UnregisterUnit()
     self.control:UnregisterForEvent(EVENT_UNIT_ATTRIBUTE_VISUAL_REMOVED)
 end
 
-local function RefreshConslidatedHp(unitTag)
-    if consolidatedBosses[unitTag] ~= nil then
+local function RefreshCurrentHp(unitTag)
+    if currentBossHealth[unitTag] ~= nil then
         local health, maxHealth = GetUnitPower(unitTag, COMBAT_MECHANIC_FLAGS_HEALTH)
-        consolidatedBosses[unitTag].health = health
-        consolidatedBosses[unitTag].maxHealth = maxHealth
+        currentBossHealth[unitTag].health = health
+        currentBossHealth[unitTag].maxHealth = maxHealth
     end
 end
 
@@ -394,6 +394,7 @@ function ABB_BossBar:Refresh(force)
     end
     local bossName = GetUnitName(self.unitTag)
     local health, maxHealth = GetUnitPower(self.unitTag, POWERTYPE_HEALTH)
+    currentBossHealth[self.unitTag] = { health = health, maxHealth = maxHealth }
     self:GetBossPercentagesByName(bossName, maxHealth)
     self.percentLinePool:ReleaseAllObjects()
     if self.bossPercentages ~= nil then
@@ -442,11 +443,11 @@ end
 
 function ABB_BossBar:OnPowerUpdate(sourceUnit, health, maxHealth, force)
 
-    local function RefreshConslidatedHpBar(barframe, textframe, force)
+    local function RefreshConsolidatedHpBar(barframe, textframe, force)
         local totalHealth = 0
         local totalMaxHealth = 0
 
-        for unitTag, bossEntry in pairs(consolidatedBosses) do
+        for unitTag, bossEntry in pairs(currentBossHealth) do
             totalHealth = totalHealth + bossEntry.health
             totalMaxHealth = totalMaxHealth + bossEntry.maxHealth
         end
@@ -454,9 +455,14 @@ function ABB_BossBar:OnPowerUpdate(sourceUnit, health, maxHealth, force)
         self:SetHealthText(totalHealth, totalMaxHealth)
     end
 
+    -- redo percent lines on hardmode activation
+    if currentBossHealth[self.unitTag] and currentBossHealth[self.unitTag].maxHealth ~= maxHealth then
+        self:Refresh(true)
+    end
+
     if CONSOLIDATE_BARS and self.unitTag == bossBars[1].unitTag then
-        RefreshConslidatedHp(sourceUnit)
-        RefreshConslidatedHpBar(self.healthBar, self.healthText, force)
+        RefreshCurrentHp(sourceUnit)
+        RefreshConsolidatedHpBar(self.healthBar, self.healthText, force)
         return
     end
 
@@ -628,9 +634,9 @@ local function ConsolidateBars(forceReset)
         local unitTag = "boss" .. i
         if DoesUnitExist(unitTag) then
             local h, m = GetUnitPower(unitTag, COMBAT_MECHANIC_FLAGS_HEALTH)
-            consolidatedBosses[unitTag] = {}
-            consolidatedBosses[unitTag].health = h
-            consolidatedBosses[unitTag].maxHealth = m
+            currentBossHealth[unitTag] = {}
+            currentBossHealth[unitTag].health = h
+            currentBossHealth[unitTag].maxHealth = m
             currentBossCount = currentBossCount + 1
         end
     end
@@ -642,8 +648,8 @@ local function ConsolidateBars(forceReset)
         bossBars[1]:Hide()
     end
 
-    if forceReset or (currentBossCount == 0 and next(consolidatedBosses) ~= nil) then
-        consolidatedBosses = {}
+    if forceReset or (currentBossCount == 0 and next(currentBossHealth) ~= nil) then
+        currentBossHealth = {}
         for i = 1, MAX_BOSSES do
             bossBars[i]:Hide()
         end
