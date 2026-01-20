@@ -9,8 +9,9 @@
 ## Author: |c943810BulDeZir|r
 ## Version: 3.2
 ## SavedVariables: AltBossBarSavedVariables
-## DependsOn: LibAddonMenu-2.0>=38
+## DependsOn: LibAddonMenu-2.0>=40
 ## OptionalDependsOn: CrutchAlerts
 
+BossData.lua
 AltBossBar.lua
 AltBossBar.xml
