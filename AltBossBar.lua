@@ -243,7 +243,9 @@ local StupidBossNamesInsteadOfId = {
     ["Orpheon the Tactician"] = { 80, 50, 30 }, ["Orpheon der Taktiker"] = { 80, 50, 30 }, ["Orphéon le tacticien"] = { 80, 50, 30 }, ["Тактик Орфеон"] = { 80, 50, 30 }, ["Orfeón el Estratega"] = { 80, 50, 30 }, ["戦術家オルフェオン"] = { 80, 50, 30 }, ["战术家奥腓翁"] = { 80, 50, 30 },
 
     -- U46 Ossein Cage
-    -- ["Shaper of Flesh"] = { 17, 34, 50, 67, 84 }
+    ["Jynorah"] = { 75, 35 },
+    ["Skorkhif"] = { 75, 35 },
+    ["Overfiend Kazpian"] = { 85, 55, 35 }
 }
 
 local function getWidth()
@@ -259,9 +261,9 @@ function PercentLineManager:New(parent, ...)
 end
 
 local bossBars = {}
-currentBossHealth = {}
+local activeBossHp = {}
 local bossCount = 0
-local CONSOLIDATE_BARS = false
+local CONSOLIDATE_CLONES = false
 
 local ABB_BossBar = ZO_Object:Subclass()
 function ABB_BossBar:New(...)
@@ -308,7 +310,6 @@ function ABB_BossBar:Initialize(bossTag, topLevelCtrl, previousBar)
     self:RegisterUnit(bossTag)
     self.control:RegisterForEvent(EVENT_PLAYER_ACTIVATED, function() self:UpdateWidth() end)
     self.control:RegisterForEvent(EVENT_SCREEN_RESIZED, function() self:UpdateWidth() end)
-    
     self:ResetColors()
     self:ApplyStyle()
     self:ApplyAnchors()
@@ -349,18 +350,16 @@ function ABB_BossBar:SetBossPercentages(name, maxHealth)
         self.shouldWarn = true
         return
     end
-    -- GetCVar("Language.2") returns locale like "en", "de"
-    -- local rawName = GetRawUnitName(unitTag)
     if StupidBossNamesInsteadOfId[name] ~= nil then
         self.bossPercentages = StupidBossNamesInsteadOfId[name]
         self.shouldWarn = true
         return
     end
-    if CONSOLIDATE_BARS then -- assumes all bosses have equal hp
+    if CONSOLIDATE_CLONES then -- assumes all bosses have equal hp
         local n = 100.0 / bossCount
         self.bossPercentages = {}
         for i = 1, bossCount - 1 do
-            table.insert(self.bossPercentages, zo_round(i * n) )
+            table.insert(self.bossPercentages, zo_round(i * n))
         end
     elseif SETTINGS.SHOW_DEFAULTS then
         self.bossPercentages = { 75, 50, 25 } -- default Percentages
@@ -393,7 +392,7 @@ function ABB_BossBar:Refresh(force)
     if DoesUnitExist(self.unitTag) then
         local bossName = GetUnitName(self.unitTag)
         local health, maxHealth = GetUnitPower(self.unitTag, POWERTYPE_HEALTH)
-        currentBossHealth[self.unitTag] = { health = health, maxHealth = maxHealth }
+        activeBossHp[self.unitTag] = { health = health, maxHealth = maxHealth }
         self:SetBossPercentages(bossName, maxHealth)
         self.percentLinePool:ReleaseAllObjects()
         if self.bossPercentages ~= nil then
@@ -443,25 +442,25 @@ end
 
 function ABB_BossBar:OnPowerUpdate(sourceUnit, health, maxHealth, force)
     -- redo percent lines on hardmode activation
-    if currentBossHealth[self.unitTag] and currentBossHealth[self.unitTag].maxHealth ~= maxHealth then
+    if activeBossHp[self.unitTag] and activeBossHp[self.unitTag].maxHealth ~= maxHealth then
         self:Refresh(true)
     end
 
     local function RefreshConsolidatedHpBar(barframe, textframe, force)
         local totalHp = 0
         local currentHp = 0
-        for unitTag, bossEntry in pairs(currentBossHealth) do
+        for unitTag, bossEntry in pairs(activeBossHp) do
             currentHp = currentHp + bossEntry.health
             totalHp = totalHp + bossEntry.maxHealth
         end
         ZO_StatusBar_SmoothTransition(barframe, currentHp, totalHp, force)
         self:SetHealthText(currentHp, totalHp)
     end
-    if CONSOLIDATE_BARS and self.unitTag == bossBars[1].unitTag then
-        if currentBossHealth[sourceUnit] ~= nil then
+    if CONSOLIDATE_CLONES and self.unitTag == bossBars[1].unitTag then
+        if activeBossHp[sourceUnit] ~= nil then
             local health, maxHealth = GetUnitPower(sourceUnit, POWERTYPE_HEALTH)
-            currentBossHealth[sourceUnit].health = health
-            currentBossHealth[sourceUnit].maxHealth = maxHealth
+            activeBossHp[sourceUnit].health = health
+            activeBossHp[sourceUnit].maxHealth = maxHealth
         end
         RefreshConsolidatedHpBar(self.healthBar, self.healthText, force)
         return
@@ -595,7 +594,7 @@ local function InitBars(topLevelCtrl)
         bossBars[i] = ABB_BossBar:New(bossTag, topLevelCtrl, prevBossBar)
         prevBossBar = bossBars[i]
     end
-    
+
     if SETTINGS.INCLUDE_DUMMY then
         bossBars[MAX_BOSSES + 1] = ABB_BossBar:New("reticleover", topLevelCtrl)
     end
@@ -604,12 +603,12 @@ end
 local function ScaleBossBars()
     local highestHealthValue = 1
     local bossOrder = {}
-    
+
     if SETTINGS.SCALE_HP_PROPORTION then
         for i = 1, MAX_BOSSES do
             local bossTag = "boss"..i
             local _, maxHealth = GetUnitPower(bossTag, POWERTYPE_HEALTH)
-            table.insert(bossOrder, { tag = bossTag, maxhp = maxHealth})
+            table.insert(bossOrder, { tag = bossTag, maxhp = maxHealth })
             if maxHealth > highestHealthValue then
                 highestHealthValue = maxHealth
             end
@@ -635,7 +634,7 @@ local function ConsolidateBars(forceReset)
         local unitTag = "boss" .. i
         if DoesUnitExist(unitTag) then
             local h, m = GetUnitPower(unitTag, COMBAT_MECHANIC_FLAGS_HEALTH)
-            currentBossHealth[unitTag] = { health = h, maxHealth = m}
+            activeBossHp[unitTag] = { health = h, maxHealth = m }
             aliveBossCount = aliveBossCount + 1
         end
     end
@@ -643,14 +642,15 @@ local function ConsolidateBars(forceReset)
     if aliveBossCount > 0 then
         bossCount = math.max(bossCount, aliveBossCount)
         bossBars[1].scaleX = 1.0
+        bossBars[1]:ResetColors()
         bossBars[1]:Show()
     else
         bossCount = 0
         bossBars[1]:Hide()
     end
 
-    if forceReset or (aliveBossCount == 0 and next(currentBossHealth) ~= nil) then
-        currentBossHealth = {}
+    if forceReset or (aliveBossCount == 0 and next(activeBossHp) ~= nil) then
+        activeBossHp = {}
         for i = 1, MAX_BOSSES do
             bossBars[i]:Hide()
         end
@@ -663,7 +663,7 @@ local function RefreshAllBosses(forceReset)
     local abbContainer = GetControl("ABB_Container")
     local lastBossBar
 
-    if CONSOLIDATE_BARS then
+    if CONSOLIDATE_CLONES then
         ConsolidateBars(forceReset)
         lastBossBar = bossBars[1]
     else
@@ -712,9 +712,9 @@ local function OnPlayerZoneChange(topLevelCtrl)
     end
     -- Ossein Cage Shapers of Flesh
     if SETTINGS.CONSOLIDATE_SHAPERS and InOsseinCageShaperMap() then
-        CONSOLIDATE_BARS = true
+        CONSOLIDATE_CLONES = true
     else
-        CONSOLIDATE_BARS = false
+        CONSOLIDATE_CLONES = false
     end
     RefreshAllBosses(true)
 end
@@ -922,10 +922,10 @@ local function InitializeAddonMenu()
             getFunc = function() return SETTINGS.CONSOLIDATE_SHAPERS end,
             setFunc = function(newValue)
                 SETTINGS.CONSOLIDATE_SHAPERS = newValue
-                if InOsseinCageShaperMap() then CONSOLIDATE_BARS = newValue end
+                if InOsseinCageShaperMap() then CONSOLIDATE_CLONES = newValue end
                 RefreshAllBosses(true)
             end,
-            default = false,
+            default = true,
             width = "full"
         }
     })
@@ -948,7 +948,7 @@ function ABB_Initialize(topLevelCtrl)
                 HP_COLOR_START = DEFAULT_HP_COLOR_START,
                 HP_COLOR_END = DEFAULT_HP_COLOR_END,
                 THEME_NAME = "Plain",
-                CONSOLIDATE_SHAPERS = false,
+                CONSOLIDATE_SHAPERS = true,
             })
 
             InitializeAddonMenu()
