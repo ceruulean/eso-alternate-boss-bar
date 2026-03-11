@@ -260,6 +260,8 @@ function PercentLineManager:New(parent, ...)
     return obj
 end
 
+ABB = {}
+ABB.lockUI = true
 local bossBars = {}
 local activeBossHp = {}
 local bossCount = 0
@@ -619,6 +621,9 @@ local function ScaleBossBars()
             bossBars[i]:RegisterUnit(val.tag)
             bossBars[i].scaleX = zo_clamp(val.maxhp / highestHealthValue, 0.5, 1.0)
         end
+        if not ABB.lockUI then
+            bossBars[1].scaleX = 1.0
+        end
     else
         for i = 1, MAX_BOSSES do
             bossBars[i].scaleX = 1.0
@@ -660,7 +665,6 @@ local function ConsolidateBars(forceReset)
 end
 
 local function RefreshAllBosses(forceReset)
-    local abbContainer = GetControl("ABB_Container")
     local lastBossBar
 
     if CONSOLIDATE_CLONES then
@@ -669,7 +673,7 @@ local function RefreshAllBosses(forceReset)
     else
         ScaleBossBars()
         for i = 1, MAX_BOSSES do
-            if DoesUnitExist(bossBars[i].unitTag) then
+            if DoesUnitExist(bossBars[i].unitTag) or not ABB.lockUI then
                 bossBars[i]:Refresh(forceReset)
                 bossBars[i]:Show()
             else
@@ -728,10 +732,25 @@ function ABB_FakeGloss:SetValue() end
 
 local function SetVisualSettings()
     local offset = SETTINGS.REPLACE_COMPASS and 0 or ZO_CompassFrame:GetHeight()
-    local container = GetControl("ABB_Container")
-    container:SetAnchor(TOPLEFT, ZO_CompassFrame, TOPLEFT, 0, offset)
+    if SETTINGS.CUSTOM_OFFSET[1] == nil then
+        ABB_Container:SetAnchor(TOPLEFT, ZO_CompassFrame, TOPLEFT, 0, offset)
+    else
+        ABB_Container:SetAnchor(TOPLEFT, GuiRoot, TOPLEFT, SETTINGS.CUSTOM_OFFSET[1], SETTINGS.CUSTOM_OFFSET[2])
+    end
     ABB_TEMPLATE_NAME = THEMES[SETTINGS.THEME_NAME or "Plain"].template
     FN_ABB_GET_WIDTH = THEMES[SETTINGS.THEME_NAME or "Plain"].calcWidth
+end
+
+function ABB.ResetPosition()
+    ABB_Container:ClearAnchors()
+    SETTINGS.CUSTOM_OFFSET = { nil, nil }
+    SetVisualSettings()
+end
+
+function ABB.OnMoveStop()
+    ABB_Container:ClearAnchors()
+    SETTINGS.CUSTOM_OFFSET = { ABB_Container:GetLeft(), ABB_Container:GetTop() }
+    SetVisualSettings()
 end
 
 -------------------------------------
@@ -784,6 +803,29 @@ local function InitializeAddonMenu()
                 SETTINGS.INCLUDE_DUMMY = newValue
             end,
             default = false,
+        },
+        {
+            type = "checkbox",
+            name = "Lock UI",
+            tooltip = "Unlock to move the boss bar.",
+            default = true,
+            getFunc = function()
+                return ABB.lockUI
+            end,
+            setFunc = function(newValue)
+                ABB.lockUI = newValue
+                RefreshAllBosses()
+            end,
+            width = "half",
+        },
+        {
+            type = "button",
+            name = "Reset Position",
+            tooltip = "Reset boss bars to default position.",
+            func = function()
+                ABB.ResetPosition()
+            end,
+            width = "half"
         },
         {
             type = "divider",
@@ -949,6 +991,7 @@ function ABB_Initialize(topLevelCtrl)
                 HP_COLOR_END = DEFAULT_HP_COLOR_END,
                 THEME_NAME = "Plain",
                 CONSOLIDATE_SHAPERS = true,
+                CUSTOM_OFFSET = { nil, nil }
             })
 
             InitializeAddonMenu()

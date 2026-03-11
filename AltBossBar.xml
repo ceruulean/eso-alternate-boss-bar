@@ -267,11 +267,14 @@
             </Controls>
         </Control>
 
-        <TopLevelControl name="ABB_Container" resizeToFitDescendents="true">
+        <TopLevelControl name="ABB_Container" resizeToFitDescendents="true" mouseEnabled="true" movable="true" clampedToScreen="true">
             <Anchor point="TOPLEFT" relativeTo="ZO_CompassFrame" relativePoint="TOPLEFT" offsetX="0" offsetY="0"/>
             <OnInitialized>
                 ABB_Initialize(self)
             </OnInitialized>
+            <OnMoveStop>
+                ABB.OnMoveStop()
+            </OnMoveStop>
         </TopLevelControl>
     </Controls>
 </GuiXml>
