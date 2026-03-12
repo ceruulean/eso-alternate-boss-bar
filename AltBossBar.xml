@@ -1,14 +1,11 @@
 <GuiXml>
     <Controls>
-
         <Line name="ABB_HP_Line_Hard_Template" thickness="2" level="501" tier="1" virtual="true">
             <OnInitialized>
                 self:SetColor(1, 1, 1, 0.7)
             </OnInitialized>
         </Line>
-
-        <Line name="ABB_HP_Line_Soft_Template" thickness="6" level="501" tier="1" virtual="true" textureFile="esoui/art/quest/questjournal_divider.dds" blendMode="COLOR_DODGE">
-        </Line>
+        <Line name="ABB_HP_Line_Soft_Template" thickness="6" level="501" tier="1" virtual="true" textureFile="esoui/art/quest/questjournal_divider.dds" blendMode="COLOR_DODGE"/>Line>
 
         <Control name="ABB_BossBar_Keyboard_Template" virtual="true">
             <Dimensions x="500" y="ZO_COMPASS_FRAME_HEIGHT_KEYBOARD"/>
@@ -94,12 +91,12 @@
                 <Texture name="$(parent)FrameCenter" inherits="ZO_TargetAttributeFrameCenter_Keyboard_Template">
                     <Dimensions y="ZO_COMPASS_FRAME_HEIGHT_KEYBOARD" />
                 </Texture>
-                
+
                 <Texture name="$(parent)NotchCenter" textureFile="esoui/art/worldmap/mapnav_downarrow_up.dds" tier="1" level="501">
                     <Dimensions x="21" y="21" />
                     <Anchor point="TOP" relativeTo="$(parent)BgCenter" relativePoint="TOP" offsetY="-5"/>
                 </Texture>
-                
+
                 <Texture name="$(parent)FrameRight" textureFile="AltBossBar/abb_frame_right.dds" tier="1" level="500">
                     <Dimensions x="32" y="ZO_COMPASS_FRAME_HEIGHT_KEYBOARD"/>
                     <Anchor point="LEFT" relativeTo="$(parent)BgCenter" relativePoint="RIGHT"/>
@@ -125,7 +122,7 @@
                             <Anchor point="LEFT" />
                             <Anchor point="RIGHT" relativePoint="LEFT" offsetX="18" />
                             <OnInitialized>
-                                self.gloss = ABB_FakeGloss:New()
+                                self.gloss = AltBossBar.FakeGloss:New()
                                 self:SetMinMax(0,1)
                                 self:SetValue(1)
                             </OnInitialized>
@@ -134,7 +131,7 @@
                             <Anchor point="LEFT" offsetX="18" />
                             <Anchor point="RIGHT" />
                             <OnInitialized>
-                                self.gloss = ABB_FakeGloss:New()
+                                self.gloss = AltBossBar.FakeGloss:New()
                             </OnInitialized>
                         </StatusBar>
                         <Label name="$(parent)Name" horizontalAlignment="CENTER">
@@ -145,7 +142,7 @@
                         </Label>
                     </Controls>
                 </Control>
-                
+
                 <Control name="$(parent)Warner">
                     <Controls>
                         <Texture name="$(parent)Left" inherits="ZO_PlayerAttributeWarnerLeftArrow" textureFile="EsoUI/Art/UnitAttributeVisualizer/attributeBar_dynamic_healthGlow.dds" />
@@ -189,7 +186,7 @@
                             <Anchor point="LEFT" />
                             <Anchor point="RIGHT" relativePoint="LEFT" offsetX="18" />
                             <OnInitialized>
-                                self.gloss = ABB_FakeGloss:New()
+                                self.gloss = AltBossBar.FakeGloss:New()
                                 self:SetMinMax(0,1)
                                 self:SetValue(1)
                             </OnInitialized>
@@ -198,7 +195,7 @@
                             <Anchor point="LEFT" offsetX="18" />
                             <Anchor point="RIGHT" />
                             <OnInitialized>
-                                self.gloss = ABB_FakeGloss:New()
+                                self.gloss = AltBossBar.FakeGloss:New()
                             </OnInitialized>
                         </StatusBar>
                         <Label name="$(parent)Name" horizontalAlignment="CENTER">
@@ -209,7 +206,7 @@
                         </Label>
                     </Controls>
                 </Control>
-                
+
                 <Control name="$(parent)Warner">
                     <Controls>
                         <Texture name="$(parent)Left" inherits="ZO_PlayerAttributeWarnerLeftArrow" textureFile="EsoUI/Art/UnitAttributeVisualizer/attributeBar_dynamic_healthGlow.dds" />
@@ -245,12 +242,9 @@
                 <Texture name="$(parent)FrameCenter" inherits="ZO_TargetAttributeFrameCenter">
                     <Anchor point="LEFT" relativeTo="$(parent)BgCenter" relativePoint="LEFT" />
                 </Texture>
-                
+
                 <Texture name="$(parent)NotchCenter" />
-                
-                <Texture name="$(parent)FrameRight">
-                </Texture>
-                
+                <Texture name="$(parent)FrameRight"/>
                 <Texture name="$(parent)BracketLeft" hidden="true" />
 
                 <Texture name="$(parent)BracketRight" tier="MEDIUM" hidden="true">
@@ -270,10 +264,10 @@
         <TopLevelControl name="ABB_Container" resizeToFitDescendents="true" mouseEnabled="true" movable="true" clampedToScreen="true">
             <Anchor point="TOPLEFT" relativeTo="ZO_CompassFrame" relativePoint="TOPLEFT" offsetX="0" offsetY="0"/>
             <OnInitialized>
-                ABB_Initialize(self)
+                AltBossBar.Initialize(self)
             </OnInitialized>
             <OnMoveStop>
-                ABB.OnMoveStop()
+                AltBossBar.OnMoveStop()
             </OnMoveStop>
         </TopLevelControl>
     </Controls>

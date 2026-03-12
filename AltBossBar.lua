@@ -1,3 +1,5 @@
+AltBossBar = {}
+
 local NAME = 'AltBossBar'
 local SV_VER = 3
 
@@ -260,12 +262,11 @@ function PercentLineManager:New(parent, ...)
     return obj
 end
 
-ABB = {}
-ABB.lockUI = true
 local bossBars = {}
 local activeBossHp = {}
 local bossCount = 0
 local CONSOLIDATE_CLONES = false
+local lockUI = true
 
 local ABB_BossBar = ZO_Object:Subclass()
 function ABB_BossBar:New(...)
@@ -621,7 +622,7 @@ local function ScaleBossBars()
             bossBars[i]:RegisterUnit(val.tag)
             bossBars[i].scaleX = zo_clamp(val.maxhp / highestHealthValue, 0.5, 1.0)
         end
-        if not ABB.lockUI then
+        if not lockUI then
             bossBars[1].scaleX = 1.0
         end
     else
@@ -673,7 +674,7 @@ local function RefreshAllBosses(forceReset)
     else
         ScaleBossBars()
         for i = 1, MAX_BOSSES do
-            if DoesUnitExist(bossBars[i].unitTag) or not ABB.lockUI then
+            if DoesUnitExist(bossBars[i].unitTag) or not lockUI then
                 bossBars[i]:Refresh(forceReset)
                 bossBars[i]:Show()
             else
@@ -723,12 +724,12 @@ local function OnPlayerZoneChange(topLevelCtrl)
     RefreshAllBosses(true)
 end
 
-ABB_FakeGloss = ZO_Object:Subclass()
-function ABB_FakeGloss:New()
+AltBossBar.FakeGloss = ZO_Object:Subclass()
+function AltBossBar.FakeGloss:New()
     return ZO_Object.New(self)
 end
-function ABB_FakeGloss:SetMinMax() end
-function ABB_FakeGloss:SetValue() end
+function AltBossBar.FakeGloss:SetMinMax() end
+function AltBossBar.FakeGloss:SetValue() end
 
 local function SetVisualSettings()
     local offset = SETTINGS.REPLACE_COMPASS and 0 or ZO_CompassFrame:GetHeight()
@@ -741,18 +742,17 @@ local function SetVisualSettings()
     FN_ABB_GET_WIDTH = THEMES[SETTINGS.THEME_NAME or "Plain"].calcWidth
 end
 
-function ABB.ResetPosition()
+function AltBossBar.ResetPosition()
     ABB_Container:ClearAnchors()
     SETTINGS.CUSTOM_OFFSET = { nil, nil }
     SetVisualSettings()
 end
 
-function ABB.OnMoveStop()
+function AltBossBar.OnMoveStop()
     ABB_Container:ClearAnchors()
     SETTINGS.CUSTOM_OFFSET = { ABB_Container:GetLeft(), ABB_Container:GetTop() }
     SetVisualSettings()
 end
-
 -------------------------------------
 --Settings Menu--
 -------------------------------------
@@ -810,10 +810,10 @@ local function InitializeAddonMenu()
             tooltip = "Unlock to move the boss bar.",
             default = true,
             getFunc = function()
-                return ABB.lockUI
+                return lockUI
             end,
             setFunc = function(newValue)
-                ABB.lockUI = newValue
+                lockUI = newValue
                 RefreshAllBosses()
             end,
             width = "half",
@@ -823,7 +823,7 @@ local function InitializeAddonMenu()
             name = "Reset Position",
             tooltip = "Reset boss bars to default position.",
             func = function()
-                ABB.ResetPosition()
+                AltBossBar.ResetPosition()
             end,
             width = "half"
         },
@@ -973,7 +973,7 @@ local function InitializeAddonMenu()
     })
 end
 
-function ABB_Initialize(topLevelCtrl)
+function AltBossBar.Initialize(topLevelCtrl)
     local function OnAddOnLoaded(_, addonName)
         if addonName == NAME then
 
